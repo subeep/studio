@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RaceSimulation } from '@/lib/simulation';
-import type { RaceState, RaceEvent, Car } from '@/lib/types';
+import type { RaceState, RaceEvent, Car, Weather, Tire } from '@/lib/types';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import type { SimulationSettings } from '@/components/simulation-setup';
 
-export const useRaceSimulation = () => {
+export const useRaceSimulation = (settings: SimulationSettings | null) => {
   const [raceState, setRaceState] = useState<RaceState | null>(null);
   const [events, setEvents] = useState<RaceEvent[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -24,13 +25,17 @@ export const useRaceSimulation = () => {
 
 
   useEffect(() => {
-    if (!simulationRef.current) {
-      const sim = new RaceSimulation();
+    if (settings && !simulationRef.current) {
+      const sim = new RaceSimulation(settings);
       simulationRef.current = sim;
       setRaceState(sim.state);
       setEvents([{ type: 'RACE_START' }]);
       setIsInitialized(true);
     }
+  }, [settings]);
+
+  useEffect(() => {
+    if (!simulationRef.current || !isInitialized) return;
 
     const gameLoop = () => {
       if (simulationRef.current) {
@@ -63,10 +68,10 @@ export const useRaceSimulation = () => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [firestore, user]);
+  }, [isInitialized, firestore, user]);
 
   useEffect(() => {
-    if (!carsColRef) return;
+    if (!carsColRef || !simulationRef.current) return;
 
     const unsubscribes: Unsubscribe[] = [];
 
@@ -88,8 +93,8 @@ export const useRaceSimulation = () => {
         unsubscribes.forEach(unsub => unsub());
     }
 
-  }, [carsColRef]);
+  }, [carsColRef, isInitialized]);
 
 
-  return { raceState, events, isInitialized };
+  return { raceState, events, isInitialized, simulation: simulationRef.current };
 };

@@ -2,6 +2,7 @@
 
 import { DRIVERS, RACE_TRACK, TOTAL_LAPS } from './constants';
 import type { Car, RaceState, RaceEvent, Weather, Tire } from './types';
+import type { SimulationSettings } from '@/components/simulation-setup';
 
 export class RaceSimulation {
   public state: RaceState;
@@ -9,18 +10,18 @@ export class RaceSimulation {
   private lastTick: number = Date.now();
   private manualOverrides: Map<string, { speed?: number; tire?: Tire }> = new Map();
 
-  constructor() {
-    this.state = this.getInitialRaceState();
+  constructor(settings: SimulationSettings) {
+    this.state = this.getInitialRaceState(settings);
   }
 
-  private getInitialRaceState(): RaceState {
+  private getInitialRaceState(settings: SimulationSettings): RaceState {
     const cars: Car[] = DRIVERS.map((driver, index) => ({
       driver,
       position: index + 1,
       lap: 1,
       progress: 0,
       speed: 180 + Math.random() * 40 - 20,
-      tire: 'Medium',
+      tire: settings.tires[driver.id] || 'Medium',
       tireWear: 0,
       isPitting: false,
       pitStops: 0,
@@ -32,7 +33,7 @@ export class RaceSimulation {
     return {
       lap: 1,
       totalLaps: TOTAL_LAPS,
-      weather: 'Dry',
+      weather: settings.weather,
       cars,
       track: RACE_TRACK,
       isFinished: false,
@@ -41,7 +42,7 @@ export class RaceSimulation {
 
   public restart(newCars: Car[]): void {
     this.state = {
-        ...this.getInitialRaceState(),
+        ...this.state, // Keep existing settings like weather
         cars: newCars,
     };
     this.pitStopTimers.clear();
@@ -79,7 +80,7 @@ export class RaceSimulation {
     this.lastTick = now;
 
     const events: RaceEvent[] = [];
-    if (this.state.lap > this.state.totalLaps) {
+    if (this.state.isFinished || this.state.lap > this.state.totalLaps) {
         return [];
     }
 

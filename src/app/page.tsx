@@ -6,18 +6,19 @@ import { Leaderboard } from '@/components/leaderboard';
 import { RaceTrack } from '@/components/race-track';
 import { ProfileDashboard } from '@/components/profile-dashboard';
 import { WeatherDisplay } from '@/components/weather-display';
-import type { Car, Tire } from '@/lib/types';
+import type { Car, Tire, Weather } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { Flag } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useUser, useAuth, useFirestore } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { DRIVERS } from '@/lib/constants';
+import { SimulationSetup, type SimulationSettings } from '@/components/simulation-setup';
 
 export default function CircuitVisionPage() {
-  const { raceState, events, isInitialized } = useRaceSimulation();
+  const [settings, setSettings] = React.useState<SimulationSettings | null>(null);
+  const { raceState, events, isInitialized, simulation } = useRaceSimulation(settings);
   const [selectedCar, setSelectedCar] = React.useState<Car | null>(null);
 
   const auth = useAuth();
@@ -79,19 +80,14 @@ export default function CircuitVisionPage() {
       }, 2000);
     }
   };
+  
+  const handleStartSimulation = (newSettings: SimulationSettings) => {
+    setSettings(newSettings);
+  };
 
 
-  if (!isInitialized || !raceState) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-           <Icons.logo className="h-16 w-16 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight">Circuit Vision</h1>
-          <p className="text-muted-foreground">Warming up the engines...</p>
-          <Skeleton className="h-4 w-64 mt-2" />
-        </div>
-      </div>
-    );
+  if (!isInitialized || !raceState || !settings) {
+    return <SimulationSetup onStart={handleStartSimulation} />;
   }
 
   return (
