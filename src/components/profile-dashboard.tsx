@@ -3,11 +3,14 @@
 import type { Car, Tire } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User } from 'lucide-react';
+import { User, BrainCircuit } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 import { Slider } from './ui/slider';
+import { predictOptimalPitStop, type PredictOptimalPitStopOutput } from '@/ai/flows/predict-optimal-pitstop';
+import { Skeleton } from './ui/skeleton';
+import { TOTAL_LAPS } from '@/lib/constants';
 
 interface ProfileDashboardProps {
   car: Car | null;
@@ -16,6 +19,71 @@ interface ProfileDashboardProps {
 }
 
 const TIRE_OPTIONS: Tire[] = ['Soft', 'Medium', 'Hard'];
+
+function PitStopPrediction({ car }: { car: Car }) {
+  const [prediction, setPrediction] = useState<PredictOptimalPitStopOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (car.pitStops >= 3) {
+        setIsLoading(false);
+        setPrediction(null);
+        return;
+    };
+
+    setIsLoading(true);
+    predictOptimalPitStop({
+      tireWear: car.tireWear,
+      pitStops: car.pitStops,
+      currentLap: car.lap,
+      totalLaps: TOTAL_LAPS,
+      tireCompound: car.tire
+    }).then(result => {
+      setPrediction(result);
+      setIsLoading(false);
+    }).catch(err => {
+      console.error("Error fetching pit stop prediction", err);
+      setIsLoading(false);
+    });
+  }, [car.tireWear, car.pitStops, car.lap, car.tire]);
+
+  if (car.pitStops >= 3) {
+    return (
+        <div className="space-y-2">
+            <h4 className="font-semibold flex items-center gap-2"><BrainCircuit /> Optimal Pit Stop</h4>
+            <p className="text-sm text-muted-foreground">
+                With 3 pit stops taken, no further stops are recommended.
+            </p>
+        </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+        <div className="space-y-2">
+            <h4 className="font-semibold flex items-center gap-2"><BrainCircuit /> Optimal Pit Stop</h4>
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+        </div>
+    )
+  }
+  
+  if (!prediction) return null;
+
+  return (
+    <div className="space-y-2">
+        <h4 className="font-semibold flex items-center gap-2"><BrainCircuit /> Optimal Pit Stop</h4>
+        {prediction.predictedLap ? (
+            <p className="font-bold text-primary text-2xl">
+                Lap {prediction.predictedLap}
+            </p>
+        ) : null}
+        <p className="text-sm text-muted-foreground">
+            {prediction.reasoning}
+        </p>
+    </div>
+  )
+}
 
 export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDashboardProps) {
   const [speed, setSpeed] = useState(car?.speed || 0);
@@ -75,7 +143,9 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
             </div>
         </div>
         <Separator />
+
         <div className="grid md:grid-cols-2 gap-6">
+            <PitStopPrediction car={car} />
             <div className="space-y-4">
               <h4 className="font-semibold">Tire Strategy</h4>
               <div className="flex gap-2">
@@ -95,24 +165,27 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
                 Changing tires will reset wear to 0% and incur a 2-second time penalty.
             </p>
             </div>
-            <div className="space-y-4">
-                <h4 className="font-semibold">Manual Control</h4>
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <Label htmlFor="speed-slider">Speed (km/h)</Label>
-                        <span className="font-mono text-sm">{speed.toFixed(0)}</span>
-                    </div>
-                    <Slider 
-                        id="speed-slider"
-                        min={0}
-                        max={360}
-                        step={5}
-                        value={[speed]}
-                        onValueChange={(value) => setSpeed(value[0])}
-                    />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-4">
+            <h4 className="font-semibold">Manual Control</h4>
+            <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="speed-slider">Speed (km/h)</Label>
+                    <span className="font-mono text-sm">{speed.toFixed(0)}</span>
                 </div>
-                <Button onClick={handleSpeedUpdate} className="w-full">Update Speed</Button>
+                <Slider 
+                    id="speed-slider"
+                    min={0}
+                    max={360}
+                    step={5}
+                    value={[speed]}
+                    onValueChange={(value) => setSpeed(value[0])}
+                />
             </div>
+            <Button onClick={handleSpeedUpdate} className="w-full">Update Speed</Button>
         </div>
       </CardContent>
     </Card>

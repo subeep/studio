@@ -35,4 +35,4 @@ export const RACE_TRACK: Track = {
   ],
 };
 
-export const TOTAL_LAPS = 85;
+export const TOTAL_LAPS = 53;
