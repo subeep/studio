@@ -36,7 +36,12 @@ export function AiCommentary({ events, raceState }: AiCommentaryProps) {
             const overtakingCar = raceState.cars.find(c => c.driver.id === overtakingCarId);
             const overtakenCar = raceState.cars.find(c => c.driver.id === overtakenCarId);
             if (overtakingCar && overtakenCar) {
-                description = `${overtakingCar.driver.name} has just overtaken ${overtakenCar.driver.name} for P${overtakingCar.position}!`;
+                description = `${overtakingCar.driver.name} has just overtaken ${overtakenCar.driver.name} for P${overtakingCar.position}! What a move! They are now ${(overtakingCar.totalDistance / 1000).toFixed(2)}km into the race.`;
+            }
+        } else if (newEvent.type === 'PIT_STOP_START') {
+            const car = raceState.cars.find(c => c.driver.id === newEvent.payload.driverId);
+            if (car) {
+                description = `${car.driver.name} is heading into the pits. They are on ${car.tireQuality.toLowerCase()} ${car.tire} tires with ${car.tireWear.toFixed(0)}% wear.`;
             }
         }
 

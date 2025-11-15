@@ -40,7 +40,7 @@ export function DriverModal({ car, isOpen, onOpenChange }: DriverModalProps) {
             </div>
              <div>
                 <Label>Tire</Label>
-                <p className="font-bold text-lg">{car.tire}</p>
+                <p className="font-bold text-lg">{car.tire} ({car.tireQuality})</p>
                 <p className="text-xs text-muted-foreground">{car.tireWear.toFixed(0)}% worn</p>
             </div>
              <div>

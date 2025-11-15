@@ -21,9 +21,11 @@ export class RaceSimulation {
       speed: 180 + Math.random() * 40 - 20,
       tire: 'Medium',
       tireWear: 0,
+      tireQuality: 'New',
       isPitting: false,
       pitStops: 0,
       highlight: false,
+      totalDistance: 0,
     }));
 
     return {
@@ -37,7 +39,7 @@ export class RaceSimulation {
   
   tick(): RaceEvent[] {
     const now = Date.now();
-    const delta = (now - this.lastTick) / 1000; // time in seconds
+    const delta = (now - this.lastTick) / (1000 / 60); // time in 60fps frames
     this.lastTick = now;
 
     const events: RaceEvent[] = [];
@@ -65,6 +67,7 @@ export class RaceSimulation {
           car.isPitting = false;
           car.tire = this.state.weather === 'Dry' ? 'Medium' : 'Wet';
           car.tireWear = 0;
+          car.tireQuality = 'New';
           events.push({ type: 'PIT_STOP_END', payload: { driverId: car.driver.id } });
         } else {
           this.pitStopTimers.set(car.driver.id, time);
@@ -85,6 +88,11 @@ export class RaceSimulation {
       let baseSpeed = 280 + (Math.random() - 0.5) * 20; // Base speed with some randomness
       baseSpeed *= (1 - car.tireWear / 200); // Tire wear effect
 
+      // Tire quality effect
+      if (car.tireQuality === 'Used') {
+        baseSpeed *= 0.98; // 2% speed reduction for used tires
+      }
+
       // Weather effect
       switch (this.state.weather) {
         case 'Light Rain':
@@ -98,16 +106,19 @@ export class RaceSimulation {
       car.speed = baseSpeed;
       
       // Update progress
-      const distance = (car.speed * 1000 / 3600) * delta; // speed in m/s * delta time
+      const distance = (car.speed * 1000 / 3600) * (delta / 60); // speed in m/s * delta time (adjust for 60fps)
       car.progress += (distance / this.state.track.length) * 100;
+      car.totalDistance += distance;
       
       // Update tire wear
-      car.tireWear += (0.2 + Math.random() * 0.2) * delta;
+      car.tireWear += (0.2 + Math.random() * 0.2) * (delta / 60);
 
       // Handle lap completion
       if (car.progress >= 100) {
         car.progress -= 100;
         car.lap += 1;
+        if(car.tireQuality === 'New') car.tireQuality = 'Used';
+
         if (car.lap > this.state.lap) {
             this.state.lap = car.lap;
         }

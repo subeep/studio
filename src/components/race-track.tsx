@@ -32,7 +32,7 @@ export function RaceTrack({ cars, track }: RaceTrackProps) {
   return (
     <TooltipProvider>
       <div className="relative aspect-[16/9] w-full">
-        <svg viewBox="0 0 600 500" className="h-full w-full">
+        <svg viewBox="0 0 900 500" className="h-full w-full">
           <defs>
             <linearGradient id="drsGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 0.8 }} />

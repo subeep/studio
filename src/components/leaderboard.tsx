@@ -62,11 +62,9 @@ export function Leaderboard({ cars, onDriverSelect }: LeaderboardProps) {
                   <p className="text-xs text-muted-foreground">{car.driver.team}</p>
                 </div>
                 <div className="text-right">
-                    {index > 0 && (
-                        <p className="text-sm font-mono">
-                            +{( ( (cars[index-1].lap + cars[index-1].progress/100) - (car.lap + car.progress/100) ) * 90 ).toFixed(2)}s
-                        </p>
-                    )}
+                    <p className="text-sm font-mono">
+                        {(car.totalDistance / 1000).toFixed(2)}km
+                    </p>
                     <p className="text-xs text-muted-foreground">
                         {car.isPitting ? 'IN PIT' : `L ${car.lap}`}
                     </p>

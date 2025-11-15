@@ -30,9 +30,11 @@ export const useRaceSimulation = () => {
       animationFrameId.current = requestAnimationFrame(gameLoop);
     };
 
-    animationFrameId.current = requestAnimationFrame(gameLoop);
+    // Running at 60fps
+    const intervalId = setInterval(gameLoop, 1000 / 60);
 
     return () => {
+      clearInterval(intervalId);
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }

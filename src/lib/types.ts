@@ -14,9 +14,11 @@ export interface Car {
   speed: number; // in km/h
   tire: 'Soft' | 'Medium' | 'Hard' | 'Intermediate' | 'Wet';
   tireWear: number; // 0 to 100
+  tireQuality: 'New' | 'Used';
   isPitting: boolean;
   pitStops: number;
   highlight: boolean;
+  totalDistance: number; // in meters
 }
 
 export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';
