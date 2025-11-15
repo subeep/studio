@@ -44,6 +44,17 @@ export class RaceSimulation {
   public setFlag(flag: FlagType): RaceEvent[] {
     if (this.state.activeFlag === flag) return [];
     this.state.activeFlag = flag;
+    
+    if (flag === 'SafetyCar') {
+      this.state.safetyCarTimeLeft = 60;
+    } else {
+      delete this.state.safetyCarTimeLeft;
+    }
+    
+    if (flag === 'Green') {
+      delete this.state.safetyCarTimeLeft;
+    }
+
     return [{ type: 'FLAG_CHANGE', payload: { newFlag: flag }}];
   }
 
@@ -105,6 +116,17 @@ export class RaceSimulation {
         return [];
     }
     
+    // Update Safety Car timer
+    if (this.state.safetyCarTimeLeft !== undefined) {
+      this.state.safetyCarTimeLeft -= delta;
+      if (this.state.safetyCarTimeLeft <= 0) {
+        delete this.state.safetyCarTimeLeft;
+        this.state.activeFlag = 'Green';
+        events.push({ type: 'FLAG_CHANGE', payload: { newFlag: 'Green' } });
+      }
+    }
+
+
     // Apply flag effects
     let speedMultiplier = 1.0;
     let isOvertakingAllowed = true;

@@ -16,6 +16,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { SimulationSetup, type SimulationSettings } from '@/components/simulation-setup';
 import { Button } from '@/components/ui/button';
 import { FlagSelector } from '@/components/flag-selector';
+import { FlagNotification } from '@/components/flag-notification';
 
 export default function CircuitVisionPage() {
   const [settings, setSettings] = React.useState<SimulationSettings | null>(null);
@@ -183,6 +184,12 @@ export default function CircuitVisionPage() {
         onApply={handleApplyFlag}
         currentFlag={raceState.activeFlag}
       />
+      {raceState.activeFlag === 'SafetyCar' && raceState.safetyCarTimeLeft !== undefined && (
+        <FlagNotification 
+            flagType="SafetyCar"
+            timeLeft={raceState.safetyCarTimeLeft}
+        />
+      )}
     </>
   );
 }

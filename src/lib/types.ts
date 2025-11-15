@@ -43,6 +43,7 @@ export interface RaceState {
   track: Track;
   isFinished?: boolean;
   activeFlag: FlagType;
+  safetyCarTimeLeft?: number;
 }
 
 export type RaceEvent =
