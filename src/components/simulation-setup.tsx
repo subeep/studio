@@ -6,7 +6,7 @@ import type { Tire, Weather, Driver } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sun, Cloud, CloudRain, GripVertical } from 'lucide-react';
+import { Sun, Cloud, CloudRain, GripVertical, Shuffle } from 'lucide-react';
 import { Icons } from './icons';
 import { ScrollArea } from './ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -72,6 +72,10 @@ export function SimulationSetup({ onStart }: SimulationSetupProps) {
     setDraggedDriver(null);
   };
 
+  const handleRandomize = () => {
+    setDrivers(prev => [...prev].sort(() => Math.random() - 0.5));
+  };
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
       <Card className="w-full max-w-2xl">
@@ -108,7 +112,13 @@ export function SimulationSetup({ onStart }: SimulationSetupProps) {
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold">Starting Grid & Tires</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Starting Grid & Tires</h3>
+              <Button variant="outline" size="sm" onClick={handleRandomize}>
+                <Shuffle className="mr-2 h-4 w-4" />
+                Randomize
+              </Button>
+            </div>
              <ScrollArea className="h-72 rounded-md border">
                 <div className="p-4">
                     {drivers.map((driver, index) => (
