@@ -25,6 +25,8 @@ export interface Car {
 
 export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';
 
+export type FlagType = 'Green' | 'Yellow' | 'Red' | 'Blue' | 'White' | 'Checkered' | 'SafetyCar';
+
 export interface Track {
   name: string;
   path: string;
@@ -40,6 +42,7 @@ export interface RaceState {
   cars: Car[];
   track: Track;
   isFinished?: boolean;
+  activeFlag: FlagType;
 }
 
 export type RaceEvent =
@@ -47,5 +50,6 @@ export type RaceEvent =
   | { type: 'PIT_STOP_START'; payload: { driverId: string } }
   | { type: 'PIT_STOP_END'; payload: { driverId: string } }
   | { type: 'WEATHER_CHANGE'; payload: { newWeather: Weather } }
+  | { type: 'FLAG_CHANGE'; payload: { newFlag: FlagType } }
   | { type: 'RACE_START' }
   | { type: 'RACE_FINISH' };

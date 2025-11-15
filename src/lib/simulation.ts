@@ -1,7 +1,7 @@
 'use client';
 
 import { RACE_TRACK, TOTAL_LAPS } from './constants';
-import type { Car, RaceState, RaceEvent, Weather, Tire } from './types';
+import type { Car, RaceState, RaceEvent, Weather, Tire, FlagType } from './types';
 import type { SimulationSettings } from '@/components/simulation-setup';
 
 export class RaceSimulation {
@@ -37,13 +37,22 @@ export class RaceSimulation {
       cars,
       track: RACE_TRACK,
       isFinished: false,
+      activeFlag: 'Green',
     };
   }
+  
+  public setFlag(flag: FlagType): RaceEvent[] {
+    if (this.state.activeFlag === flag) return [];
+    this.state.activeFlag = flag;
+    return [{ type: 'FLAG_CHANGE', payload: { newFlag: flag }}];
+  }
+
 
   public restart(newCars: Car[]): void {
     this.state = {
         ...this.state, // Keep existing settings like weather
         cars: newCars,
+        activeFlag: 'Green',
     };
     this.pitStopTimers.clear();
     this.lastTick = null;
@@ -95,6 +104,23 @@ export class RaceSimulation {
     if (this.state.isFinished || this.state.lap > this.state.totalLaps) {
         return [];
     }
+    
+    // Apply flag effects
+    let speedMultiplier = 1.0;
+    let isOvertakingAllowed = true;
+    switch (this.state.activeFlag) {
+      case 'Yellow':
+        speedMultiplier = 0.6;
+        isOvertakingAllowed = false;
+        break;
+      case 'SafetyCar':
+        speedMultiplier = 0.4;
+        isOvertakingAllowed = false;
+        break;
+      case 'Red':
+        return []; // Stop all simulation
+    }
+
 
     // Update each car
     this.state.cars.forEach(car => {
@@ -116,7 +142,8 @@ export class RaceSimulation {
       const isPitWindow = car.lap >= 18 && car.lap <= 22;
 
       // Decide to pit
-      const shouldPit = (isPitWindow && Math.random() < 0.001) ||
+      const shouldPit = (this.state.activeFlag === 'SafetyCar' && Math.random() < 0.1) ||
+                      (isPitWindow && Math.random() < 0.001) ||
                       (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
                       (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10);
@@ -169,6 +196,9 @@ export class RaceSimulation {
           break;
       }
       
+      // Apply flag speed multiplier
+      car.speed *= speedMultiplier;
+
       // Enforce hard speed limit
       car.speed = Math.min(car.speed, 330);
 
@@ -208,7 +238,7 @@ export class RaceSimulation {
     this.state.cars.forEach((car, index) => {
       const newPosition = index + 1;
       const oldCarState = oldOrder.find((c: Car) => c.driver.id === car.driver.id);
-      if (oldCarState && oldCarState.position > newPosition) {
+      if (oldCarState && oldCarState.position > newPosition && isOvertakingAllowed) {
         const overtakenCar = this.state.cars.find(c => c.position === newPosition + 1);
         if(overtakenCar) {
             events.push({ type: 'OVERTAKE', payload: { overtakingCarId: car.driver.id, overtakenCarId: overtakenCar.driver.id } });
@@ -221,12 +251,12 @@ export class RaceSimulation {
 
       // DRS activation logic
       car.drsStatus = false;
-      if (index > 0) { // Can't activate DRS if in first place
+      if (index > 0 && isOvertakingAllowed) { // Can't activate DRS if in first place or not allowed
         const carAhead = this.state.cars[index - 1];
         const distanceToCarAhead = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100);
         const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
 
-        if (distanceToCarAhead < 0.01 && inDrsZone && this.state.weather === 'Dry') { // roughly within 1 second
+        if (distanceToCarAhead < 0.01 && inDrsZone && this.state.weather === 'Dry' && this.state.activeFlag === 'Green') { // roughly within 1 second
             car.drsStatus = true;
         }
       }
