@@ -152,6 +152,7 @@ export class RaceSimulation {
         if (time <= 0) {
           this.pitStopTimers.delete(car.driver.id);
           car.isPitting = false;
+          // Logic for choosing new tire can be more complex
           car.tire = this.state.weather === 'Dry' ? (Math.random() > 0.5 ? 'Hard' : 'Medium') : 'Wet';
           car.tireWear = 0;
           events.push({ type: 'PIT_STOP_END', payload: { driverId: car.driver.id } });
@@ -163,8 +164,8 @@ export class RaceSimulation {
       
       const isPitWindow = car.lap >= 18 && car.lap <= 22;
 
-      // Decide to pit
-      const shouldPit = (this.state.activeFlag === 'SafetyCar' && Math.random() < 0.1) ||
+      // Decide to pit. Pitting under safety car is a strategic choice.
+      const shouldPit = (this.state.activeFlag === 'SafetyCar' && Math.random() < 0.01) || // Low chance to strategically pit
                       (isPitWindow && Math.random() < 0.001) ||
                       (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
@@ -173,7 +174,7 @@ export class RaceSimulation {
       if (!car.isPitting && shouldPit) {
         car.isPitting = true;
         car.pitStops += 1;
-        this.pitStopTimers.set(car.driver.id, 2); // 2 seconds for a pit stop
+        this.pitStopTimers.set(car.driver.id, 2 + Math.random()); // Pit stop duration
         events.push({ type: 'PIT_STOP_START', payload: { driverId: car.driver.id } });
         return;
       }
