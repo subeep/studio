@@ -5,7 +5,8 @@ import type { Car, RaceEvent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
-import { Users } from 'lucide-react';
+import { Users, Zap } from 'lucide-react';
+import { Badge } from './ui/badge';
 
 interface LeaderboardProps {
   cars: Car[];
@@ -60,7 +61,14 @@ export function Leaderboard({ cars, onDriverSelect, selectedCarId }: Leaderboard
                   <div className="h-6 w-1 rounded-full" style={{ backgroundColor: car.driver.color }} />
                 </div>
                 <div className="flex-grow">
-                  <p className="font-semibold">{car.driver.tricode}</p>
+                  <p className="font-semibold flex items-center gap-2">
+                    {car.driver.tricode}
+                    {car.drsStatus && (
+                        <Badge variant="outline" className="border-primary text-primary h-5 px-1.5">
+                            <Zap className="w-3 h-3 fill-current" />
+                        </Badge>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">{car.driver.team}</p>
                 </div>
                 <div className="text-right">

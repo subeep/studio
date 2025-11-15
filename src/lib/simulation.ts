@@ -22,11 +22,11 @@ export class RaceSimulation {
       speed: 180 + Math.random() * 40 - 20,
       tire: 'Medium',
       tireWear: 0,
-      tireQuality: 'New',
       isPitting: false,
       pitStops: 0,
       highlight: false,
       totalDistance: 0,
+      drsStatus: false,
     }));
 
     return {
@@ -38,6 +38,16 @@ export class RaceSimulation {
       isFinished: false,
     };
   }
+
+  public restart(newCars: Car[]): void {
+    this.state = {
+        ...this.getInitialRaceState(),
+        cars: newCars,
+    };
+    this.pitStopTimers.clear();
+    this.lastTick = Date.now();
+  }
+
 
   updateCarFromDb(carId: string, carData: Partial<Car>) {
       const carIndex = this.state.cars.findIndex(c => c.driver.id === carId);
@@ -93,7 +103,6 @@ export class RaceSimulation {
           car.isPitting = false;
           car.tire = this.state.weather === 'Dry' ? (Math.random() > 0.5 ? 'Hard' : 'Medium') : 'Wet';
           car.tireWear = 0;
-          car.tireQuality = 'New';
           events.push({ type: 'PIT_STOP_END', payload: { driverId: car.driver.id } });
         } else {
           this.pitStopTimers.set(car.driver.id, time);
@@ -104,7 +113,7 @@ export class RaceSimulation {
       const isPitWindow = car.lap >= 18 && car.lap <= 22;
 
       // Decide to pit
-      const shouldPit = (isPitWindow && Math.random() < 0.01) ||
+      const shouldPit = (isPitWindow && Math.random() < 0.001) ||
                       (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
                       (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10) ||
@@ -114,7 +123,7 @@ export class RaceSimulation {
       if (!car.isPitting && shouldPit) {
         car.isPitting = true;
         car.pitStops += 1;
-        this.pitStopTimers.set(car.driver.id, 10); // 10 seconds for a pit stop
+        this.pitStopTimers.set(car.driver.id, 2); // 2 seconds for a pit stop
         events.push({ type: 'PIT_STOP_START', payload: { driverId: car.driver.id } });
         return;
       }
@@ -142,10 +151,12 @@ export class RaceSimulation {
       
       car.speed *= tireSpeedMultiplier;
 
-      // Tire quality effect
-      if (car.tireQuality === 'Used') {
-        car.speed *= 0.98; // 2% speed reduction for used tires
+      // DRS Effect
+      const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
+      if (car.drsStatus && inDrsZone) {
+        car.speed *= 1.05; // 5% speed boost with DRS
       }
+      
 
       // Weather effect
       switch (this.state.weather) {
@@ -172,7 +183,6 @@ export class RaceSimulation {
       if (car.progress >= 100) {
         car.progress -= 100;
         car.lap += 1;
-        if(car.tireQuality === 'New') car.tireQuality = 'Used';
 
         if (car.lap > this.state.lap) {
             this.state.lap = car.lap;
@@ -204,6 +214,18 @@ export class RaceSimulation {
         car.highlight = false;
       }
       car.position = newPosition;
+      
+      // DRS activation logic
+      car.drsStatus = false;
+      if (index > 0) { // Can't activate DRS if in first place
+        const carAhead = this.state.cars[index - 1];
+        const distanceToCarAhead = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100);
+        const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
+
+        if (distanceToCarAhead < 0.01 && inDrsZone && this.state.weather === 'Dry') { // roughly within 1 second
+            car.drsStatus = true;
+        }
+      }
     });
 
 
