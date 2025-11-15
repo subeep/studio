@@ -13,7 +13,7 @@ import { Flag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser, useAuth, useFirestore } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { DRIVERS } from '@/lib/constants';
 
 export default function CircuitVisionPage() {
@@ -50,17 +50,24 @@ export default function CircuitVisionPage() {
   };
 
   const handleSpeedChange = async (carId: string, newSpeed: number) => {
-    if (firestore && selectedCar) {
+    if (firestore) {
       const carRef = doc(firestore, 'races', 'race1', 'cars', carId);
       await setDoc(carRef, { speed: newSpeed }, { merge: true });
     }
   };
   
   const handleTireChange = async (carId: string, newTire: Tire) => {
-    if (firestore && selectedCar) {
+    if (firestore) {
       const carRef = doc(firestore, 'races', 'race1', 'cars', carId);
-      // Introduce a 2-second penalty by briefly reducing speed
-      const originalSpeed = selectedCar.speed;
+      
+      // Get the car's current state from the database to ensure we have the latest speed
+      const carSnap = await getDoc(carRef);
+      if (!carSnap.exists()) return;
+
+      const carData = carSnap.data() as Car;
+      const originalSpeed = carData.speed;
+
+      // Introduce a 2-second penalty by briefly reducing speed for this car only
       await setDoc(carRef, { speed: originalSpeed * 0.9 }, { merge: true });
       
       setTimeout(async () => {
