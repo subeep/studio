@@ -47,15 +47,14 @@ export function Leaderboard({ cars, onDriverSelect, selectedCarId }: Leaderboard
         <ScrollArea className="h-[60vh] md:h-[70vh]">
           <div className="flex flex-col">
             {cars.map((car, index) => {
+              const carAhead = index > 0 ? cars[index - 1] : null;
               let intervalDisplay: string;
-              if (index === 0) {
-                const totalSeconds = car.raceTime;
-                const minutes = Math.floor(totalSeconds / 60);
-                const seconds = Math.floor(totalSeconds % 60);
-                const millis = Math.floor((totalSeconds % 1) * 100);
-                intervalDisplay = `${minutes}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(2,'0')}`;
+              if (carAhead) {
+                const distanceDiff = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100);
+                const timeDiff = distanceDiff * 20; // Approximation
+                intervalDisplay = `+${timeDiff.toFixed(2)}s`;
               } else {
-                intervalDisplay = `+${car.interval.toFixed(2)}s`;
+                intervalDisplay = 'Leader';
               }
               
               return (
