@@ -38,21 +38,6 @@ export default function CircuitVisionPage() {
     }
   }, [user, isUserLoading, auth]);
 
-  React.useEffect(() => {
-    if (user && isInitialized && raceState && settings) {
-        const raceRef = doc(firestore, 'races', 'race1');
-        setDoc(raceRef, {id: 'race1', weatherConditions: raceState.weather, timestamp: new Date().toISOString() }, { merge: true });
-
-        settings.drivers.forEach(driver => {
-            const carRef = doc(raceRef, 'cars', driver.id);
-            const carData = raceState.cars.find(c => c.driver.id === driver.id);
-            if (carData) {
-                setDoc(carRef, { ...carData, driver: {...carData.driver} }, { merge: true });
-            }
-        });
-    }
-  }, [user, isInitialized, firestore, raceState, settings]);
-
   const handleDriverSelect = (car: Car) => {
     setSelectedCar(car);
   };

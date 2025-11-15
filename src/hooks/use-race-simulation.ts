@@ -16,7 +16,7 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
   const animationFrameId = useRef<number>();
   const firestore = useFirestore();
   const { user } = useUser();
-  const lastWriteTime = useRef(0);
+  const lastWriteTime = useRef(Date.now());
   const WRITE_INTERVAL = 500; // Write to Firestore every 500ms
 
   const carsColRef = useMemoFirebase(() => {
@@ -56,6 +56,9 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
         // Write to firestore non-blockingly at a throttled rate
         const now = Date.now();
         if (firestore && user && now - lastWriteTime.current > WRITE_INTERVAL) {
+            const raceRef = doc(firestore, 'races', 'race1');
+            setDoc(raceRef, { id: 'race1', weatherConditions: currentState.weather, timestamp: new Date().toISOString() }, { merge: true });
+
             currentState.cars.forEach(car => {
                 const carRef = doc(firestore, 'races', 'race1', 'cars', car.driver.id);
                 setDoc(carRef, car, { merge: true });
