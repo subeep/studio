@@ -3,7 +3,7 @@
 import type { Car, Tire } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, BrainCircuit, Fuel } from 'lucide-react';
+import { User, BrainCircuit, Fuel, Sprout } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
@@ -11,10 +11,12 @@ import { predictOptimalPitStop, type PredictOptimalPitStopOutput } from '@/ai/fl
 import { Skeleton } from './ui/skeleton';
 import { TOTAL_LAPS } from '@/lib/constants';
 import { Progress } from './ui/progress';
+import { Slider } from './ui/slider';
 
 interface ProfileDashboardProps {
   car: Car | null;
   onTireChange: (carId: string, newTire: Tire) => void;
+  onSpeedChange: (carId: string, newSpeed: number) => void;
 }
 
 const TIRE_OPTIONS: Tire[] = ['Soft', 'Medium', 'Hard'];
@@ -84,7 +86,15 @@ function PitStopPrediction({ car }: { car: Car }) {
   )
 }
 
-export function ProfileDashboard({ car, onTireChange }: ProfileDashboardProps) {
+export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDashboardProps) {
+  const [currentSpeed, setCurrentSpeed] = useState(car?.speed || 200);
+
+  useEffect(() => {
+    if (car) {
+      setCurrentSpeed(car.speed);
+    }
+  }, [car]);
+
 
   if (!car) {
     return (
@@ -102,6 +112,10 @@ export function ProfileDashboard({ car, onTireChange }: ProfileDashboardProps) {
         </CardContent>
       </Card>
     );
+  }
+
+  const handleSpeedUpdate = () => {
+    onSpeedChange(car.driver.id, currentSpeed);
   }
 
   return (
@@ -140,11 +154,29 @@ export function ProfileDashboard({ car, onTireChange }: ProfileDashboardProps) {
         </div>
 
         <Separator />
+        
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Label>Manual Speed Control</Label>
+            <span className="font-mono text-lg">{currentSpeed.toFixed(0)} km/h</span>
+          </div>
+          <Slider
+            min={100}
+            max={330}
+            step={5}
+            value={[currentSpeed]}
+            onValueChange={(vals) => setCurrentSpeed(vals[0])}
+          />
+          <Button onClick={handleSpeedUpdate} size="sm">Update Speed</Button>
+        </div>
+
+
+        <Separator />
 
         <div className="grid md:grid-cols-2 gap-6">
             <PitStopPrediction car={car} />
             <div className="space-y-4">
-              <h4 className="font-semibold">Tire Strategy</h4>
+              <h4 className="font-semibold flex items-center gap-2"><Sprout /> Tire Strategy</h4>
               <div className="flex gap-2">
                 {TIRE_OPTIONS.map((tire) => (
                   <Button

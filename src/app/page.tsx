@@ -54,6 +54,15 @@ export default function CircuitVisionPage() {
   const handleDriverSelect = (car: Car) => {
     setSelectedCar(car);
   };
+
+  const handleSpeedChange = async (carId: string, newSpeed: number) => {
+    if (firestore) {
+      const carRef = doc(firestore, 'races', 'race1', 'cars', carId);
+      await setDoc(carRef, { speed: newSpeed }, { merge: true });
+    }
+  };
+  
+
   
   const handleTireChange = async (carId: string, newTire: Tire) => {
     if (firestore) {
@@ -162,7 +171,7 @@ export default function CircuitVisionPage() {
                   />
                 </CardContent>
               </Card>
-              <ProfileDashboard car={selectedCar} onTireChange={handleTireChange} />
+              <ProfileDashboard car={selectedCar} onTireChange={handleTireChange} onSpeedChange={handleSpeedChange} />
             </div>
           </div>
 
