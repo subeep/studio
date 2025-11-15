@@ -22,11 +22,12 @@ export interface Car {
   totalDistance: number; // in meters
   drsStatus: boolean;
   interval?: number;
+  fuel: number; // 0 to 100
 }
 
 export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';
 
-export type FlagType = 'Green' | 'Yellow' | 'Red' | 'SafetyCar';
+export type FlagType = 'Green' | 'Yellow' | 'Red' | 'SafetyCar' | 'Checkered';
 
 export interface Track {
   name: string;

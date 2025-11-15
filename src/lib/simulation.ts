@@ -29,6 +29,7 @@ export class RaceSimulation {
       totalDistance: 0,
       drsStatus: false,
       interval: 0,
+      fuel: 100,
     }));
 
     return {
@@ -161,6 +162,7 @@ export class RaceSimulation {
           // Logic for choosing new tire can be more complex
           car.tire = this.state.weather === 'Dry' ? (Math.random() > 0.5 ? 'Hard' : 'Medium') : 'Wet';
           car.tireWear = 0;
+          car.fuel = 100; // Refuel on pit stop
           events.push({ type: 'PIT_STOP_END', payload: { driverId: car.driver.id } });
         } else {
           this.pitStopTimers.set(car.driver.id, time);
@@ -175,7 +177,8 @@ export class RaceSimulation {
                       (isPitWindow && Math.random() < 0.001) ||
                       (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
-                      (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10);
+                      (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10) ||
+                      (car.fuel < 5); // Pit if fuel is low
 
       if (!car.isPitting && shouldPit) {
         car.isPitting = true;
@@ -192,6 +195,8 @@ export class RaceSimulation {
         // Update speed based on various factors
         let baseSpeed = 300;
         baseSpeed *= (1 - car.tireWear / 200);
+        // Fuel effect: lighter car is faster. Max 3% speed boost at empty.
+        baseSpeed *= (1 + (1 - car.fuel / 100) * 0.03); 
 
         car.speed = baseSpeed;
       }
@@ -236,11 +241,15 @@ export class RaceSimulation {
       car.progress += (distance / this.state.track.length) * 100;
       car.totalDistance += distance;
       
-      // Update tire wear
+      // Update tire wear & fuel
       let wearRate = 0.2;
       if (car.tire === 'Soft') wearRate = 0.4;
       if (car.tire === 'Hard') wearRate = 0.1;
       car.tireWear += wearRate * delta;
+      
+      const fuelConsumptionRate = 1.8 / TOTAL_LAPS; // Percentage of fuel per lap
+      car.fuel -= (distance / this.state.track.length) * fuelConsumptionRate * 100;
+      car.fuel = Math.max(0, car.fuel);
 
       // Handle lap completion
       if (car.progress >= 100) {
@@ -252,6 +261,7 @@ export class RaceSimulation {
         }
          if(this.state.lap > this.state.totalLaps && !this.state.isFinished) {
             this.state.isFinished = true;
+            this.state.activeFlag = 'Checkered';
             events.push({ type: 'RACE_FINISH' });
         }
       }
@@ -295,7 +305,7 @@ export class RaceSimulation {
         });
     } else {
         // When overtaking is not allowed, cars should still "bunch up" but not re-order
-        this.state.cars.forEach((car, index) => {
+        this.state.cars.sort((a, b) => a.position - b.position).forEach((car, index) => {
             car.highlight = false; // no highlights during these periods
             car.drsStatus = false; // DRS is always off
 
@@ -303,12 +313,13 @@ export class RaceSimulation {
                 const carAhead = this.state.cars[index -1];
                 const carAheadTotalDistance = carAhead.totalDistance;
                 const currentCarTotalDistance = car.totalDistance;
+                
+                const idealGap = 10; // meters
 
-                // If current car is ahead of the car that should be in front, slow it down
-                // and move it back, maintaining a small gap.
-                if (currentCarTotalDistance > carAheadTotalDistance) {
-                   const distanceToPullBack = currentCarTotalDistance - carAheadTotalDistance;
-                   car.totalDistance -= (distanceToPullBack + 5); // 5 meter gap
+                // If current car is too close or has passed, adjust its position
+                if (currentCarTotalDistance > carAheadTotalDistance - idealGap) {
+                   const distanceToPullBack = currentCarTotalDistance - (carAheadTotalDistance - idealGap);
+                   car.totalDistance -= distanceToPullBack;
                    // Recalculate progress based on new totalDistance
                    const lapsCompleted = Math.floor(car.totalDistance / this.state.track.length);
                    car.lap = lapsCompleted + 1;

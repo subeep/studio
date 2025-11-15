@@ -3,7 +3,7 @@
 import type { Car, Tire } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, BrainCircuit } from 'lucide-react';
+import { User, BrainCircuit, Fuel } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
@@ -11,6 +11,7 @@ import { Slider } from './ui/slider';
 import { predictOptimalPitStop, type PredictOptimalPitStopOutput } from '@/ai/flows/predict-optimal-pitstop';
 import { Skeleton } from './ui/skeleton';
 import { TOTAL_LAPS } from '@/lib/constants';
+import { Progress } from './ui/progress';
 
 interface ProfileDashboardProps {
   car: Car | null;
@@ -45,7 +46,7 @@ function PitStopPrediction({ car }: { car: Car }) {
       console.error("Error fetching pit stop prediction", err);
       setIsLoading(false);
     });
-  }, [car.driver.id]); // Only re-run when the car changes
+  }, [car.driver.id, car.lap]); // Re-run when car or lap changes
 
   if (car.pitStops >= 3) {
     return (
@@ -142,6 +143,15 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
                 <p className="font-bold text-2xl">{car.pitStops}</p>
             </div>
         </div>
+        
+        <div className="space-y-2">
+            <div className="flex justify-between items-center">
+                <Label htmlFor="fuel-bar" className="flex items-center gap-2"><Fuel /> Fuel</Label>
+                <span className="font-mono text-sm">{car.fuel.toFixed(1)}%</span>
+            </div>
+            <Progress id="fuel-bar" value={car.fuel} />
+        </div>
+
         <Separator />
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -162,7 +172,7 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
                 ))}
               </div>
                <p className="text-xs text-muted-foreground">
-                Changing tires will reset wear to 0% and incur a 2-second time penalty.
+                Changing tires will reset wear to 0% and incur a 2-second time penalty. Fuel is also refilled.
             </p>
             </div>
         </div>
