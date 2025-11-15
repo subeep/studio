@@ -45,7 +45,7 @@ function PitStopPrediction({ car }: { car: Car }) {
       console.error("Error fetching pit stop prediction", err);
       setIsLoading(false);
     });
-  }, [car.tireWear, car.pitStops, car.lap, car.tire]);
+  }, [car.driver.id]); // Only re-run when the car changes
 
   if (car.pitStops >= 3) {
     return (
