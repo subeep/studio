@@ -48,7 +48,7 @@ export default function CircuitVisionPage() {
             <div className="flex items-center gap-4 rounded-lg bg-card p-2 text-sm">
                 <div className="flex items-center gap-2">
                     <Flag className="h-5 w-5 text-primary" />
-                    <span>Lap: <span className="font-bold">{raceState.lap}/{raceState.totalLaps}</span></span>
+                    <span>Lap: <span className="font-bold">{raceState.lap > raceState.totalLaps ? raceState.totalLaps : raceState.lap}/{raceState.totalLaps}</span></span>
                 </div>
                 <WeatherDisplay weather={raceState.weather} />
             </div>

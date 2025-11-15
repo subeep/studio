@@ -9,6 +9,7 @@ export const useRaceSimulation = () => {
   const [events, setEvents] = useState<RaceEvent[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const simulationRef = useRef<RaceSimulation | null>(null);
+  const animationFrameId = useRef<number>();
 
   useEffect(() => {
     if (!simulationRef.current) {
@@ -18,7 +19,7 @@ export const useRaceSimulation = () => {
       setIsInitialized(true);
     }
 
-    const interval = setInterval(() => {
+    const gameLoop = () => {
       if (simulationRef.current) {
         const newEvents = simulationRef.current.tick();
         if (newEvents.length > 0) {
@@ -26,9 +27,16 @@ export const useRaceSimulation = () => {
         }
         setRaceState({ ...simulationRef.current.state });
       }
-    }, 2000); // Update every 2 seconds
+      animationFrameId.current = requestAnimationFrame(gameLoop);
+    };
 
-    return () => clearInterval(interval);
+    animationFrameId.current = requestAnimationFrame(gameLoop);
+
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
   }, []);
 
   return { raceState, events, isInitialized };

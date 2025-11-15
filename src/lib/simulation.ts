@@ -6,6 +6,7 @@ import type { Car, RaceState, RaceEvent, Weather } from './types';
 export class RaceSimulation {
   public state: RaceState;
   private pitStopTimers: Map<string, number> = new Map();
+  private lastTick: number = Date.now();
 
   constructor() {
     this.state = this.getInitialRaceState();
@@ -35,13 +36,17 @@ export class RaceSimulation {
   }
   
   tick(): RaceEvent[] {
+    const now = Date.now();
+    const delta = (now - this.lastTick) / 1000; // time in seconds
+    this.lastTick = now;
+
     const events: RaceEvent[] = [];
     if (this.state.lap > this.state.totalLaps) {
         return [];
     }
 
     // Weather changes
-    if (Math.random() < 0.005) {
+    if (Math.random() < 0.0005) { // Reduced probability to make it less frequent
       const weathers: Weather[] = ['Dry', 'Light Rain', 'Heavy Rain'];
       const newWeather = weathers[Math.floor(Math.random() * weathers.length)];
       if (newWeather !== this.state.weather) {
@@ -54,7 +59,7 @@ export class RaceSimulation {
     this.state.cars.forEach(car => {
       // Handle pitting
       if (this.pitStopTimers.has(car.driver.id)) {
-        let time = this.pitStopTimers.get(car.driver.id)! - 1;
+        let time = this.pitStopTimers.get(car.driver.id)! - delta;
         if (time <= 0) {
           this.pitStopTimers.delete(car.driver.id);
           car.isPitting = false;
@@ -71,7 +76,7 @@ export class RaceSimulation {
       if (!car.isPitting && (car.tireWear > 60 + Math.random() * 20)) {
         car.isPitting = true;
         car.pitStops += 1;
-        this.pitStopTimers.set(car.driver.id, 5); // 5 ticks for a pit stop
+        this.pitStopTimers.set(car.driver.id, 10); // 10 seconds for a pit stop
         events.push({ type: 'PIT_STOP_START', payload: { driverId: car.driver.id } });
         return;
       }
@@ -93,11 +98,11 @@ export class RaceSimulation {
       car.speed = baseSpeed;
       
       // Update progress
-      const distance = (car.speed * 1000 / 3600) * 2; // speed in m/s * 2 second tick
+      const distance = (car.speed * 1000 / 3600) * delta; // speed in m/s * delta time
       car.progress += (distance / this.state.track.length) * 100;
       
       // Update tire wear
-      car.tireWear += 0.5 + Math.random() * 0.5;
+      car.tireWear += (0.2 + Math.random() * 0.2) * delta;
 
       // Handle lap completion
       if (car.progress >= 100) {
@@ -106,7 +111,8 @@ export class RaceSimulation {
         if (car.lap > this.state.lap) {
             this.state.lap = car.lap;
         }
-         if(this.state.lap > this.state.totalLaps) {
+         if(this.state.lap > this.state.totalLaps && !this.state.isFinished) {
+            this.state.isFinished = true;
             events.push({ type: 'RACE_FINISH' });
         }
       }

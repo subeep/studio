@@ -25,12 +25,13 @@ export const DRIVERS: Driver[] = [
 
 export const RACE_TRACK: Track = {
   name: 'Circuit de la Vision',
-  path: 'M 100,200 A 80,80 0 0 1 180,120 L 420,120 A 80,80 0 0 1 500,200 L 500,300 A 80,80 0 0 1 420,380 L 180,380 A 80,80 0 0 1 100,300 Z',
-  length: 1570,
+  path: 'M 50,250 C 50,100 200,50 300,100 S 450,150 550,100 C 650,50 750,150 750,250 S 650,450 550,400 S 400,300 300,350 S 50,400 50,250 Z',
+  length: 2200,
   drsZones: [
-    { start: 0.1, end: 0.35 },
-    { start: 0.6, end: 0.85 },
+    { start: 0.15, end: 0.35 },
+    { start: 0.55, end: 0.75 },
+    { start: 0.85, end: 0.98 },
   ],
 };
 
-export const TOTAL_LAPS = 50;
+export const TOTAL_LAPS = 70;

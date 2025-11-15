@@ -34,6 +34,7 @@ export interface RaceState {
   weather: Weather;
   cars: Car[];
   track: Track;
+  isFinished?: boolean;
 }
 
 export type RaceEvent =
