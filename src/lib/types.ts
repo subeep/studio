@@ -21,6 +21,8 @@ export interface Car {
   highlight: boolean;
   totalDistance: number; // in meters
   drsStatus: boolean;
+  interval: number; // time diff to car ahead in seconds
+  raceTime: number; // total race time in seconds
 }
 
 export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';

@@ -9,6 +9,7 @@ export class RaceSimulation {
   private pitStopTimers: Map<string, number> = new Map();
   private lastTick: number | null = null;
   private manualOverrides: Map<string, { speed?: number; tire?: Tire }> = new Map();
+  private totalRaceTime: number = 0;
 
   constructor(settings: SimulationSettings) {
     this.state = this.getInitialRaceState(settings);
@@ -28,6 +29,8 @@ export class RaceSimulation {
       highlight: false,
       totalDistance: 0,
       drsStatus: false,
+      interval: 0,
+      raceTime: 0,
     }));
 
     return {
@@ -90,6 +93,8 @@ export class RaceSimulation {
     }
 
     this.lastTick = now;
+    
+    this.totalRaceTime += delta;
 
     const events: RaceEvent[] = [];
     if (this.state.isFinished || this.state.lap > this.state.totalLaps) {
@@ -219,6 +224,17 @@ export class RaceSimulation {
       }
       car.position = newPosition;
       
+      if (index === 0) {
+        car.raceTime = this.totalRaceTime;
+        car.interval = 0;
+      } else {
+        const carAhead = this.state.cars[index - 1];
+        const distanceDiff = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100);
+        const timeDiff = distanceDiff * (this.state.track.length / ((car.speed || 1) / 3.6));
+        car.interval = timeDiff;
+        car.raceTime = carAhead.raceTime + timeDiff;
+      }
+
       // DRS activation logic
       car.drsStatus = false;
       if (index > 0) { // Can't activate DRS if in first place

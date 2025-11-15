@@ -61,6 +61,9 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
         }
 
         setRaceState({ ...currentState });
+      } else if (simulationRef.current) {
+        // When paused, ensure the lastTick is reset so delta calculation is correct on resume
+        simulationRef.current['lastTick'] = null;
       }
       animationFrameId.current = requestAnimationFrame(gameLoop);
     };
