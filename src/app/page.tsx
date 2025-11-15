@@ -7,7 +7,6 @@ import { RaceTrack } from '@/components/race-track';
 import { ProfileDashboard } from '@/components/profile-dashboard';
 import { WeatherDisplay } from '@/components/weather-display';
 import type { Car, Tire } from '@/lib/types';
-import { DriverModal } from '@/components/driver-modal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { Flag } from 'lucide-react';
@@ -116,7 +115,7 @@ export default function CircuitVisionPage() {
                   />
                 </CardContent>
               </Card>
-              <ProfileDashboard car={selectedCar} onTireChange={handleTireChange} />
+              <ProfileDashboard car={selectedCar} onTireChange={handleTireChange} onSpeedChange={handleSpeedChange} />
             </div>
           </div>
 
@@ -130,14 +129,6 @@ export default function CircuitVisionPage() {
           </div>
         </main>
       </div>
-      <DriverModal
-        car={selectedCar}
-        isOpen={!!selectedCar}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) setSelectedCar(null);
-        }}
-        onSpeedChange={handleSpeedChange}
-      />
     </>
   );
 }
