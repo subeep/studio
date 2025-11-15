@@ -123,8 +123,8 @@ export default function CircuitVisionPage() {
           </div>
         </header>
 
-        <main className="container mx-auto grid grid-cols-1 gap-6 p-4 lg:grid-cols-3 xl:grid-cols-4">
-          <div className="lg:col-span-2 xl:col-span-3">
+        <main className="container mx-auto grid grid-cols-1 gap-6 p-4 lg:grid-cols-2 xl:grid-cols-5">
+          <div className="lg:col-span-1 xl:col-span-3">
             <div className="flex flex-col gap-6">
               <Card>
                 <CardContent className="p-2 sm:p-4">
@@ -138,7 +138,7 @@ export default function CircuitVisionPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-1 xl:col-span-1">
+          <div className="lg:col-span-1 xl:col-span-2">
             <Leaderboard
               cars={raceState.cars}
               onDriverSelect={handleDriverSelect}
