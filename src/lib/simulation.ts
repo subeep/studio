@@ -165,7 +165,7 @@ export class RaceSimulation {
       const isPitWindow = car.lap >= 18 && car.lap <= 22;
 
       // Decide to pit. Pitting under safety car is a strategic choice.
-      const shouldPit = (this.state.activeFlag === 'SafetyCar' && Math.random() < 0.01) || // Low chance to strategically pit
+      const shouldPit = (this.state.activeFlag === 'SafetyCar' && Math.random() < 0.005) || // Low chance to strategically pit
                       (isPitWindow && Math.random() < 0.001) ||
                       (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
@@ -251,39 +251,67 @@ export class RaceSimulation {
       }
     });
 
-    // Sort cars and handle overtakes
-    const oldOrder = JSON.parse(JSON.stringify(this.state.cars));
-    this.state.cars.sort((a, b) => {
-      if (a.lap !== b.lap) return b.lap - a.lap;
-      return b.progress - a.progress;
-    });
+    if (isOvertakingAllowed) {
+        // Sort cars and handle overtakes
+        const oldOrder = JSON.parse(JSON.stringify(this.state.cars));
+        this.state.cars.sort((a, b) => {
+        if (a.lap !== b.lap) return b.lap - a.lap;
+        return b.progress - a.progress;
+        });
 
-    this.state.cars.forEach((car, index) => {
-      const newPosition = index + 1;
-      const oldCarState = oldOrder.find((c: Car) => c.driver.id === car.driver.id);
-      if (oldCarState && oldCarState.position > newPosition && isOvertakingAllowed) {
-        const overtakenCar = this.state.cars.find(c => c.position === newPosition + 1);
-        if(overtakenCar) {
-            events.push({ type: 'OVERTAKE', payload: { overtakingCarId: car.driver.id, overtakenCarId: overtakenCar.driver.id } });
-            car.highlight = true;
-        }
-      } else {
-        car.highlight = false;
-      }
-      car.position = newPosition;
+        this.state.cars.forEach((car, index) => {
+            const newPosition = index + 1;
+            const oldCarState = oldOrder.find((c: Car) => c.driver.id === car.driver.id);
+            if (oldCarState && oldCarState.position > newPosition) {
+                const overtakenCar = this.state.cars.find(c => c.position === newPosition + 1);
+                if(overtakenCar) {
+                    events.push({ type: 'OVERTAKE', payload: { overtakingCarId: car.driver.id, overtakenCarId: overtakenCar.driver.id } });
+                    car.highlight = true;
+                }
+            } else {
+                car.highlight = false;
+            }
+            car.position = newPosition;
 
-      // DRS activation logic
-      car.drsStatus = false;
-      if (index > 0 && isOvertakingAllowed) { // Can't activate DRS if in first place or not allowed
-        const carAhead = this.state.cars[index - 1];
-        const distanceToCarAhead = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100);
-        const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
+            // DRS activation logic
+            car.drsStatus = false;
+            if (index > 0) { // Can't activate DRS if in first place
+                const carAhead = this.state.cars[index - 1];
+                const distanceToCarAhead = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100);
+                const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
 
-        if (distanceToCarAhead < 0.01 && inDrsZone && this.state.weather === 'Dry' && this.state.activeFlag === 'Green') { // roughly within 1 second
-            car.drsStatus = true;
-        }
-      }
-    });
+                if (distanceToCarAhead < 0.01 && inDrsZone && this.state.weather === 'Dry' && this.state.activeFlag === 'Green') { // roughly within 1 second
+                    car.drsStatus = true;
+                }
+            }
+        });
+    } else {
+        // When overtaking is not allowed, cars should still "bunch up"
+        // We will sort them but not change their official position property
+        this.state.cars.forEach((car, index) => {
+            car.highlight = false; // no highlights during these periods
+            // DRS is always off
+            car.drsStatus = false;
+
+            if (index > 0) {
+                const carAhead = this.state.cars[index -1];
+                 // Calculate the total progress of each car
+                const carAheadTotalProgress = carAhead.lap + (carAhead.progress / 100);
+                const currentCarTotalProgress = car.lap + (car.progress / 100);
+
+                // If current car is ahead of the car that should be in front, slow it down
+                if (currentCarTotalProgress > carAheadTotalProgress) {
+                    const difference = currentCarTotalProgress - carAheadTotalProgress;
+                    // Reduce progress to stay behind, adding a tiny gap
+                    car.progress -= (difference * 100) + 0.01;
+                    if(car.progress < 0) {
+                        car.lap -= 1;
+                        car.progress += 100;
+                    }
+                }
+            }
+        })
+    }
 
 
     return events;
