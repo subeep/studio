@@ -34,9 +34,17 @@ export function RaceTrack({ cars, track }: RaceTrackProps) {
       <div className="relative aspect-[16/9] w-full">
         <svg viewBox="0 0 900 500" className="h-full w-full">
           <defs>
-            <linearGradient id="drsGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 0.8 }} />
-              <stop offset="100%" style={{ stopColor: 'hsl(var(--primary))', stopOpacity: 0 }} />
+            <linearGradient id="drsGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style={{ stopColor: 'hsl(var(--chart-1))', stopOpacity: 0.8 }} />
+              <stop offset="100%" style={{ stopColor: 'hsl(var(--chart-1))', stopOpacity: 0 }} />
+            </linearGradient>
+            <linearGradient id="drsGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style={{ stopColor: 'hsl(var(--chart-2))', stopOpacity: 0.8 }} />
+              <stop offset="100%" style={{ stopColor: 'hsl(var(--chart-2))', stopOpacity: 0 }} />
+            </linearGradient>
+            <linearGradient id="drsGradient3" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style={{ stopColor: 'hsl(var(--chart-4))', stopOpacity: 0.8 }} />
+              <stop offset="100%" style={{ stopColor: 'hsl(var(--chart-4))', stopOpacity: 0 }} />
             </linearGradient>
           </defs>
           <path
@@ -64,24 +72,24 @@ export function RaceTrack({ cars, track }: RaceTrackProps) {
           {track.drsZones.map((zone, index) => {
             if (!pathRef.current || pathLength === 0) return null;
             const startPoint = getCoords(zone.start * 100);
-            const endPoint = getCoords(zone.end * 100);
             const length = pathLength * (zone.end - zone.start);
+            const gradientId = `url(#drsGradient${index + 1})`;
 
             // This is a simplified representation. A real implementation would trace the path segment.
             return (
               <React.Fragment key={`drs-${index}`}>
                  <path
                   d={track.path}
-                  stroke="url(#drsGradient)"
+                  stroke={gradientId}
                   strokeWidth="20"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeDasharray={`${pathLength * zone.start} ${length} ${pathLength}`}
                 />
-                <circle cx={startPoint.x} cy={startPoint.y} r="10" fill="hsl(var(--primary))" opacity="0.5" />
+                <circle cx={startPoint.x} cy={startPoint.y} r="10" fill={`hsl(var(--chart-${index + 1}))`} opacity="0.5" />
                  <foreignObject x={startPoint.x-10} y={startPoint.y-35} width="20" height="20">
-                     <Zap className="h-5 w-5 text-primary-foreground fill-primary" />
+                     <Zap className="h-5 w-5 text-primary-foreground" style={{fill: `hsl(var(--chart-${index + 1}))`}} />
                  </foreignObject>
               </React.Fragment>
             );
