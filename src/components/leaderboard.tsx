@@ -46,7 +46,23 @@ export function Leaderboard({ cars, onDriverSelect, selectedCarId }: Leaderboard
       <CardContent className="p-0">
         <ScrollArea className="h-[60vh] md:h-[70vh]">
           <div className="flex flex-col">
-            {cars.map((car, index) => (
+            {cars.map((car, index) => {
+              let interval: string;
+              if (index === 0) {
+                const totalSeconds = car.totalDistance / ((car.speed || 1) * 1000 / 3600);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = Math.floor(totalSeconds % 60);
+                interval = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+              } else {
+                const carAhead = cars[index - 1];
+                const distanceDiff = carAhead.totalDistance - car.totalDistance;
+                // speed is in km/h, convert to m/s
+                const speedInMps = (car.speed || 1) / 3.6;
+                const timeDiff = distanceDiff / speedInMps;
+                interval = `+${timeDiff.toFixed(2)}s`;
+              }
+              
+              return (
               <div
                 key={car.driver.id}
                 onClick={() => onDriverSelect(car)}
@@ -73,14 +89,14 @@ export function Leaderboard({ cars, onDriverSelect, selectedCarId }: Leaderboard
                 </div>
                 <div className="text-right">
                     <p className="text-sm font-mono">
-                        {(car.totalDistance / 1000).toFixed(2)}km
+                        {interval}
                     </p>
                     <p className="text-xs text-muted-foreground">
                         {car.isPitting ? 'IN PIT' : `L ${car.lap}`}
                     </p>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </ScrollArea>
       </CardContent>
