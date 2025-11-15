@@ -7,7 +7,7 @@ import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import type { SimulationSettings } from '@/components/simulation-setup';
 
-export const useRaceSimulation = (settings: SimulationSettings | null) => {
+export const useRaceSimulation = (settings: SimulationSettings | null, isPaused: boolean) => {
   const [raceState, setRaceState] = useState<RaceState | null>(null);
   const [events, setEvents] = useState<RaceEvent[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -38,7 +38,7 @@ export const useRaceSimulation = (settings: SimulationSettings | null) => {
     if (!simulationRef.current || !isInitialized) return;
 
     const gameLoop = () => {
-      if (simulationRef.current) {
+      if (simulationRef.current && !isPaused) {
         const newEvents = simulationRef.current.tick();
         if (newEvents.length > 0) {
             setEvents(prev => [...prev, ...newEvents]);
@@ -68,7 +68,7 @@ export const useRaceSimulation = (settings: SimulationSettings | null) => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [isInitialized, firestore, user]);
+  }, [isInitialized, firestore, user, isPaused]);
 
   useEffect(() => {
     if (!carsColRef || !simulationRef.current) return;
@@ -78,7 +78,7 @@ export const useRaceSimulation = (settings: SimulationSettings | null) => {
     const sim = simulationRef.current;
     if (sim) {
         sim.state.cars.forEach(car => {
-            const carDocRef = doc(carsColRef, car.driver.id);
+            const carDocRef = doc(carsCol.ref, car.driver.id);
             const unsubscribe = onSnapshot(carDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const dbCar = docSnap.data() as Car;

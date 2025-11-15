@@ -9,15 +9,17 @@ import { WeatherDisplay } from '@/components/weather-display';
 import type { Car, Tire, Weather } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
-import { Flag } from 'lucide-react';
+import { Flag, Pause, Play } from 'lucide-react';
 import { useUser, useAuth, useFirestore } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { SimulationSetup, type SimulationSettings } from '@/components/simulation-setup';
+import { Button } from '@/components/ui/button';
 
 export default function CircuitVisionPage() {
   const [settings, setSettings] = React.useState<SimulationSettings | null>(null);
-  const { raceState, events, isInitialized, simulation } = useRaceSimulation(settings);
+  const [isPaused, setIsPaused] = React.useState(false);
+  const { raceState, events, isInitialized, simulation } = useRaceSimulation(settings, isPaused);
   const [selectedCar, setSelectedCar] = React.useState<Car | null>(null);
 
   const auth = useAuth();
@@ -114,6 +116,9 @@ export default function CircuitVisionPage() {
               </h1>
             </div>
             <div className="flex items-center gap-4 rounded-lg bg-card p-2 text-sm">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsPaused(!isPaused)}>
+                    {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+                </Button>
                 <div className="flex items-center gap-2">
                     <Flag className="h-5 w-5 text-primary" />
                     <span>Lap: <span className="font-bold">{raceState.lap > raceState.totalLaps ? raceState.totalLaps : raceState.lap}/{raceState.totalLaps}</span></span>
