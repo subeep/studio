@@ -11,9 +11,10 @@ interface LeaderboardProps {
   cars: Car[];
   onDriverSelect: (car: Car) => void;
   events: RaceEvent[];
+  selectedCarId?: string | null;
 }
 
-export function Leaderboard({ cars, onDriverSelect }: LeaderboardProps) {
+export function Leaderboard({ cars, onDriverSelect, selectedCarId }: LeaderboardProps) {
   const [highlightedCars, setHighlightedCars] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -43,14 +44,15 @@ export function Leaderboard({ cars, onDriverSelect }: LeaderboardProps) {
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[60vh] md:h-[70vh]">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col">
             {cars.map((car, index) => (
               <div
                 key={car.driver.id}
                 onClick={() => onDriverSelect(car)}
                 className={cn(
                   'flex cursor-pointer items-center gap-4 border-b p-3 transition-all duration-500 hover:bg-muted/50',
-                   highlightedCars.has(car.driver.id) ? 'bg-primary/20' : 'bg-transparent'
+                   highlightedCars.has(car.driver.id) ? 'bg-primary/20' : 'bg-transparent',
+                   selectedCarId === car.driver.id ? 'bg-accent' : ''
                 )}
               >
                 <div className="flex w-12 items-center gap-2">

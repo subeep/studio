@@ -25,7 +25,7 @@ export const DRIVERS: Driver[] = [
 
 export const RACE_TRACK: Track = {
   name: 'Circuit de la Vision',
-  path: 'M 50,250 C 50,100 300,50 300,100 S 450,150 550,100 C 950,50 850,150 850,250 S 750,450 650,400 S 500,300 400,350 S 150,400 50,250 Z',
+  path: 'M 50,250 C 150,150 150,50 300,50 C 350,100 200,50 300,100 S 250,150 550,100 C 950,50 850,150 850,250 S 750,450 650,400 S 500,300 400,350 S 400,400 50,250 Z',
   pitLanePath: 'M 50 270 L 250 270',
   length: 5800,
   drsZones: [

@@ -1,13 +1,13 @@
 'use client';
 
 import { DRIVERS, RACE_TRACK, TOTAL_LAPS } from './constants';
-import type { Car, RaceState, RaceEvent, Weather } from './types';
+import type { Car, RaceState, RaceEvent, Weather, Tire } from './types';
 
 export class RaceSimulation {
   public state: RaceState;
   private pitStopTimers: Map<string, number> = new Map();
   private lastTick: number = Date.now();
-  private manualSpeed: Map<string, number> = new Map();
+  private manualOverrides: Map<string, { speed?: number; tire?: Tire }> = new Map();
 
   constructor() {
     this.state = this.getInitialRaceState();
@@ -35,21 +35,37 @@ export class RaceSimulation {
       weather: 'Dry',
       cars,
       track: RACE_TRACK,
+      isFinished: false,
     };
   }
 
   updateCarFromDb(carId: string, carData: Partial<Car>) {
       const carIndex = this.state.cars.findIndex(c => c.driver.id === carId);
       if (carIndex !== -1) {
-          if (carData.speed !== undefined) {
-              this.manualSpeed.set(carId, carData.speed);
+          const currentCar = this.state.cars[carIndex];
+          const override = this.manualOverrides.get(carId) || {};
+          let needsUpdate = false;
+
+          if (carData.speed !== undefined && carData.speed !== currentCar.speed) {
+              override.speed = carData.speed;
+              needsUpdate = true;
+          }
+
+          if (carData.tire !== undefined && carData.tire !== currentCar.tire) {
+              override.tire = carData.tire;
+              this.state.cars[carIndex].tireWear = 0; // Reset tire wear on change
+              needsUpdate = true;
+          }
+
+          if(needsUpdate) {
+            this.manualOverrides.set(carId, override);
           }
       }
   }
   
   tick(): RaceEvent[] {
     const now = Date.now();
-    const delta = (now - this.lastTick) / (1000 / 60); // time in 60fps frames
+    const delta = (now - this.lastTick) / (1000); // time in seconds
     this.lastTick = now;
 
     const events: RaceEvent[] = [];
@@ -58,7 +74,7 @@ export class RaceSimulation {
     }
 
     // Weather changes
-    if (Math.random() < 0.0005) { // Reduced probability to make it less frequent
+    if (Math.random() < 0.0005) { 
       const weathers: Weather[] = ['Dry', 'Light Rain', 'Heavy Rain'];
       const newWeather = weathers[Math.floor(Math.random() * weathers.length)];
       if (newWeather !== this.state.weather) {
@@ -103,37 +119,46 @@ export class RaceSimulation {
         return;
       }
       
-      if (this.manualSpeed.has(car.driver.id)) {
-        car.speed = this.manualSpeed.get(car.driver.id)!;
+      const override = this.manualOverrides.get(car.driver.id);
+      if (override?.speed) {
+        car.speed = override.speed;
       } else {
         // Update speed based on various factors
-        let baseSpeed = 280 + (Math.random() - 0.5) * 20; // Base speed with some randomness
-        baseSpeed *= (1 - car.tireWear / 200); // Tire wear effect
-
-        // Tire compound effect
-        if (car.tire === 'Soft') baseSpeed *= 1.02;
-        if (car.tire === 'Hard') baseSpeed *= 0.98;
-
-        // Tire quality effect
-        if (car.tireQuality === 'Used') {
-          baseSpeed *= 0.98; // 2% speed reduction for used tires
-        }
-
-        // Weather effect
-        switch (this.state.weather) {
-          case 'Light Rain':
-            baseSpeed *= car.tire === 'Intermediate' || car.tire === 'Wet' ? 0.95 : 0.85;
-            break;
-          case 'Heavy Rain':
-            baseSpeed *= car.tire === 'Wet' ? 0.9 : 0.75;
-            break;
-        }
+        let baseSpeed = 280;
+        baseSpeed *= (1 - car.tireWear / 200);
 
         car.speed = baseSpeed;
       }
+
+      if (override?.tire) {
+        car.tire = override.tire;
+        // Don't reset wear here, it's done in updateCarFromDb
+      }
+
+      // Tire compound effect from user request
+      let tireSpeedMultiplier = 1.0;
+      if (car.tire === 'Soft') tireSpeedMultiplier = 1.015; // 1.5% faster than medium
+      if (car.tire === 'Hard') tireSpeedMultiplier = 0.985; // 1.5% slower than medium
+      
+      car.speed *= tireSpeedMultiplier;
+
+      // Tire quality effect
+      if (car.tireQuality === 'Used') {
+        car.speed *= 0.98; // 2% speed reduction for used tires
+      }
+
+      // Weather effect
+      switch (this.state.weather) {
+        case 'Light Rain':
+          car.speed *= car.tire === 'Intermediate' || car.tire === 'Wet' ? 0.95 : 0.85;
+          break;
+        case 'Heavy Rain':
+          car.speed *= car.tire === 'Wet' ? 0.9 : 0.75;
+          break;
+      }
       
       // Update progress
-      const distance = (car.speed * 1000 / 3600) * (delta / 60); // speed in m/s * delta time (adjust for 60fps)
+      const distance = (car.speed * 1000 / 3600) * delta; 
       car.progress += (distance / this.state.track.length) * 100;
       car.totalDistance += distance;
       
@@ -141,7 +166,7 @@ export class RaceSimulation {
       let wearRate = 0.2;
       if (car.tire === 'Soft') wearRate = 0.4;
       if (car.tire === 'Hard') wearRate = 0.1;
-      car.tireWear += (wearRate + Math.random() * 0.1) * (delta / 60);
+      car.tireWear += wearRate * delta;
 
       // Handle lap completion
       if (car.progress >= 100) {
@@ -160,7 +185,7 @@ export class RaceSimulation {
     });
 
     // Sort cars and handle overtakes
-    const oldOrder = [...this.state.cars];
+    const oldOrder = JSON.parse(JSON.stringify(this.state.cars));
     this.state.cars.sort((a, b) => {
       if (a.lap !== b.lap) return b.lap - a.lap;
       return b.progress - a.progress;
@@ -168,7 +193,7 @@ export class RaceSimulation {
 
     this.state.cars.forEach((car, index) => {
       const newPosition = index + 1;
-      const oldCarState = oldOrder.find(c => c.driver.id === car.driver.id);
+      const oldCarState = oldOrder.find((c: Car) => c.driver.id === car.driver.id);
       if (oldCarState && oldCarState.position > newPosition) {
         const overtakenCar = this.state.cars.find(c => c.position === newPosition + 1);
         if(overtakenCar) {

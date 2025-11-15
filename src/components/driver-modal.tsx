@@ -9,10 +9,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Slider } from './ui/slider';
 
 interface DriverModalProps {
@@ -24,6 +23,12 @@ interface DriverModalProps {
 
 export function DriverModal({ car, isOpen, onOpenChange, onSpeedChange }: DriverModalProps) {
   const [speed, setSpeed] = useState(car?.speed || 0);
+
+  useEffect(() => {
+    if (car) {
+      setSpeed(car.speed);
+    }
+  }, [car]);
 
   if (!car) return null;
 
@@ -70,7 +75,7 @@ export function DriverModal({ car, isOpen, onOpenChange, onSpeedChange }: Driver
                     min={0}
                     max={360}
                     step={5}
-                    defaultValue={[car.speed]}
+                    value={[speed]}
                     onValueChange={(value) => setSpeed(value[0])}
                 />
             </div>

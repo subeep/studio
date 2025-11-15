@@ -4,13 +4,13 @@ import * as React from 'react';
 import { useRaceSimulation } from '@/hooks/use-race-simulation';
 import { Leaderboard } from '@/components/leaderboard';
 import { RaceTrack } from '@/components/race-track';
-import { AiCommentary } from '@/components/ai-commentary';
+import { ProfileDashboard } from '@/components/profile-dashboard';
 import { WeatherDisplay } from '@/components/weather-display';
-import type { Car } from '@/lib/types';
+import type { Car, Tire } from '@/lib/types';
 import { DriverModal } from '@/components/driver-modal';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
-import { Flag, Cpu } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser, useAuth, useFirestore } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
@@ -40,20 +40,33 @@ export default function CircuitVisionPage() {
             const carRef = doc(raceRef, 'cars', driver.id);
             const carData = raceState.cars.find(c => c.driver.id === driver.id);
             if (carData) {
-                setDoc(carRef, carData, { merge: true });
+                setDoc(carRef, { ...carData, driver: {...carData.driver} }, { merge: true });
             }
         });
     }
-  }, [user, isInitialized, firestore]);
+  }, [user, isInitialized, firestore, raceState]);
 
   const handleDriverSelect = (car: Car) => {
     setSelectedCar(car);
   };
 
   const handleSpeedChange = async (carId: string, newSpeed: number) => {
-    if (firestore) {
+    if (firestore && selectedCar) {
       const carRef = doc(firestore, 'races', 'race1', 'cars', carId);
       await setDoc(carRef, { speed: newSpeed }, { merge: true });
+    }
+  };
+  
+  const handleTireChange = async (carId: string, newTire: Tire) => {
+    if (firestore && selectedCar) {
+      const carRef = doc(firestore, 'races', 'race1', 'cars', carId);
+      // Introduce a 2-second penalty by briefly reducing speed
+      const originalSpeed = selectedCar.speed;
+      await setDoc(carRef, { speed: originalSpeed * 0.9 }, { merge: true });
+      
+      setTimeout(async () => {
+        await setDoc(carRef, { tire: newTire, tireWear: 0, speed: originalSpeed }, { merge: true });
+      }, 2000);
     }
   };
 
@@ -103,17 +116,7 @@ export default function CircuitVisionPage() {
                   />
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Cpu className="text-primary" />
-                    Live Commentary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <AiCommentary events={events} raceState={raceState} />
-                </CardContent>
-              </Card>
+              <ProfileDashboard car={selectedCar} onTireChange={handleTireChange} />
             </div>
           </div>
 
@@ -122,6 +125,7 @@ export default function CircuitVisionPage() {
               cars={raceState.cars}
               onDriverSelect={handleDriverSelect}
               events={events}
+              selectedCarId={selectedCar?.driver.id}
             />
           </div>
         </main>
@@ -129,7 +133,9 @@ export default function CircuitVisionPage() {
       <DriverModal
         car={selectedCar}
         isOpen={!!selectedCar}
-        onOpenChange={() => setSelectedCar(null)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setSelectedCar(null);
+        }}
         onSpeedChange={handleSpeedChange}
       />
     </>

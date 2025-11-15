@@ -6,13 +6,15 @@ export interface Driver {
   tricode: string;
 }
 
+export type Tire = 'Soft' | 'Medium' | 'Hard' | 'Intermediate' | 'Wet';
+
 export interface Car {
   driver: Driver;
   position: number;
   lap: number;
   progress: number; // 0 to 100, percentage of lap completion
   speed: number; // in km/h
-  tire: 'Soft' | 'Medium' | 'Hard' | 'Intermediate' | 'Wet';
+  tire: Tire;
   tireWear: number; // 0 to 100
   tireQuality: 'New' | 'Used';
   isPitting: boolean;
