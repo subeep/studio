@@ -46,19 +46,8 @@ export function AiCommentary({ events, raceState }: AiCommentaryProps) {
         }
 
         if (description) {
-            setIsLoading(true);
-            try {
-                const result = await generateCommentary({ raceStateDescription: description });
-                if (result.commentary) {
-                    setCommentary(prev => [{ id: Date.now(), text: result.commentary }, ...prev]);
-                }
-            } catch (error) {
-                console.error("AI Commentary Error:", error);
-                // Fallback to simple description if AI fails
-                setCommentary(prev => [{ id: Date.now(), text: description }, ...prev]);
-            } finally {
-                setIsLoading(false);
-            }
+            // By using the description directly, we avoid calling the Gemini API.
+            setCommentary(prev => [{ id: Date.now(), text: description }, ...prev]);
         }
       }
     };
