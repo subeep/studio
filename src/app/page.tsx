@@ -12,14 +12,49 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { Flag, Cpu } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser, useAuth, useFirestore } from '@/firebase';
+import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import { doc, setDoc } from 'firebase/firestore';
+import { DRIVERS } from '@/lib/constants';
 
 export default function CircuitVisionPage() {
   const { raceState, events, isInitialized } = useRaceSimulation();
   const [selectedCar, setSelectedCar] = React.useState<Car | null>(null);
 
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  React.useEffect(() => {
+    if (!isUserLoading && !user) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [user, isUserLoading, auth]);
+
+  React.useEffect(() => {
+    if (user && isInitialized && raceState) {
+        const raceRef = doc(firestore, 'races', 'race1');
+        DRIVERS.forEach(driver => {
+            const carRef = doc(raceRef, 'cars', driver.id);
+            const carData = raceState.cars.find(c => c.driver.id === driver.id);
+            if (carData) {
+                setDoc(carRef, carData, { merge: true });
+            }
+        });
+    }
+  }, [user, isInitialized, firestore]);
+
   const handleDriverSelect = (car: Car) => {
     setSelectedCar(car);
   };
+
+  const handleSpeedChange = async (carId: string, newSpeed: number) => {
+    if (firestore) {
+      const carRef = doc(firestore, 'races', 'race1', 'cars', carId);
+      await setDoc(carRef, { speed: newSpeed }, { merge: true });
+    }
+  };
+
 
   if (!isInitialized || !raceState) {
     return (
@@ -93,6 +128,7 @@ export default function CircuitVisionPage() {
         car={selectedCar}
         isOpen={!!selectedCar}
         onOpenChange={() => setSelectedCar(null)}
+        onSpeedChange={handleSpeedChange}
       />
     </>
   );

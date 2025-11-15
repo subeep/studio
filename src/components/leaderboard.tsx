@@ -43,7 +43,7 @@ export function Leaderboard({ cars, onDriverSelect }: LeaderboardProps) {
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[60vh] md:h-[70vh]">
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-1">
             {cars.map((car, index) => (
               <div
                 key={car.driver.id}

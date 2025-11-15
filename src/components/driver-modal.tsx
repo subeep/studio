@@ -12,15 +12,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
+import { Slider } from './ui/slider';
 
 interface DriverModalProps {
   car: Car | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onSpeedChange: (carId: string, newSpeed: number) => void;
 }
 
-export function DriverModal({ car, isOpen, onOpenChange }: DriverModalProps) {
+export function DriverModal({ car, isOpen, onOpenChange, onSpeedChange }: DriverModalProps) {
+  const [speed, setSpeed] = useState(car?.speed || 0);
+
   if (!car) return null;
+
+  const handleSpeedUpdate = () => {
+    onSpeedChange(car.driver.id, speed);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -40,7 +49,7 @@ export function DriverModal({ car, isOpen, onOpenChange }: DriverModalProps) {
             </div>
              <div>
                 <Label>Tire</Label>
-                <p className="font-bold text-lg">{car.tire} ({car.tireQuality})</p>
+                <p className="font-bold text-lg">{car.tire}</p>
                 <p className="text-xs text-muted-foreground">{car.tireWear.toFixed(0)}% worn</p>
             </div>
              <div>
@@ -49,28 +58,23 @@ export function DriverModal({ car, isOpen, onOpenChange }: DriverModalProps) {
             </div>
         </div>
         <Separator />
-        <div>
-            <h3 className="font-semibold mb-4">Prop Bets</h3>
-            <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="bet-finish" className="flex-shrink-0">Finish in Top 3</Label>
-                    <Input id="bet-finish" type="number" placeholder="Wager amount" className="w-32" />
-                    <Button>Place Bet</Button>
+        <div className="space-y-4">
+            <h3 className="font-semibold">Manual Control</h3>
+            <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="speed-slider">Speed (km/h)</Label>
+                    <span className="font-mono text-sm">{speed.toFixed(0)}</span>
                 </div>
-                 <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="bet-fastest" className="flex-shrink-0">Set Fastest Lap</Label>
-                    <Input id="bet-fastest" type="number" placeholder="Wager amount" className="w-32" />
-                    <Button>Place Bet</Button>
-                </div>
-                 <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="bet-pit" className="flex-shrink-0">Next to Pit</Label>
-                     <Input id="bet-pit" type="number" placeholder="Wager amount" className="w-32" />
-                    <Button variant="secondary">AI Suggestion</Button>
-                </div>
-                <p className="text-xs text-muted-foreground text-center pt-2">
-                    This is a mock betting interface. Bets are not real.
-                </p>
+                <Slider 
+                    id="speed-slider"
+                    min={0}
+                    max={360}
+                    step={5}
+                    defaultValue={[car.speed]}
+                    onValueChange={(value) => setSpeed(value[0])}
+                />
             </div>
+            <Button onClick={handleSpeedUpdate} className="w-full">Update Speed</Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -7,6 +7,7 @@ export class RaceSimulation {
   public state: RaceState;
   private pitStopTimers: Map<string, number> = new Map();
   private lastTick: number = Date.now();
+  private manualSpeed: Map<string, number> = new Map();
 
   constructor() {
     this.state = this.getInitialRaceState();
@@ -35,6 +36,15 @@ export class RaceSimulation {
       cars,
       track: RACE_TRACK,
     };
+  }
+
+  updateCarFromDb(carId: string, carData: Partial<Car>) {
+      const carIndex = this.state.cars.findIndex(c => c.driver.id === carId);
+      if (carIndex !== -1) {
+          if (carData.speed !== undefined) {
+              this.manualSpeed.set(carId, carData.speed);
+          }
+      }
   }
   
   tick(): RaceEvent[] {
@@ -65,7 +75,7 @@ export class RaceSimulation {
         if (time <= 0) {
           this.pitStopTimers.delete(car.driver.id);
           car.isPitting = false;
-          car.tire = this.state.weather === 'Dry' ? 'Medium' : 'Wet';
+          car.tire = this.state.weather === 'Dry' ? (Math.random() > 0.5 ? 'Hard' : 'Medium') : 'Wet';
           car.tireWear = 0;
           car.tireQuality = 'New';
           events.push({ type: 'PIT_STOP_END', payload: { driverId: car.driver.id } });
@@ -76,7 +86,13 @@ export class RaceSimulation {
       }
       
       // Decide to pit
-      if (!car.isPitting && (car.tireWear > 60 + Math.random() * 20)) {
+      const shouldPit = (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
+                      (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
+                      (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10) ||
+                      (this.state.weather.includes('Rain') && !['Intermediate', 'Wet'].includes(car.tire)) ||
+                      (!this.state.weather.includes('Rain') && ['Intermediate', 'Wet'].includes(car.tire));
+
+      if (!car.isPitting && shouldPit) {
         car.isPitting = true;
         car.pitStops += 1;
         this.pitStopTimers.set(car.driver.id, 10); // 10 seconds for a pit stop
@@ -84,26 +100,34 @@ export class RaceSimulation {
         return;
       }
       
-      // Update speed based on various factors
-      let baseSpeed = 280 + (Math.random() - 0.5) * 20; // Base speed with some randomness
-      baseSpeed *= (1 - car.tireWear / 200); // Tire wear effect
+      if (this.manualSpeed.has(car.driver.id)) {
+        car.speed = this.manualSpeed.get(car.driver.id)!;
+      } else {
+        // Update speed based on various factors
+        let baseSpeed = 280 + (Math.random() - 0.5) * 20; // Base speed with some randomness
+        baseSpeed *= (1 - car.tireWear / 200); // Tire wear effect
 
-      // Tire quality effect
-      if (car.tireQuality === 'Used') {
-        baseSpeed *= 0.98; // 2% speed reduction for used tires
+        // Tire compound effect
+        if (car.tire === 'Soft') baseSpeed *= 1.02;
+        if (car.tire === 'Hard') baseSpeed *= 0.98;
+
+        // Tire quality effect
+        if (car.tireQuality === 'Used') {
+          baseSpeed *= 0.98; // 2% speed reduction for used tires
+        }
+
+        // Weather effect
+        switch (this.state.weather) {
+          case 'Light Rain':
+            baseSpeed *= car.tire === 'Intermediate' || car.tire === 'Wet' ? 0.95 : 0.85;
+            break;
+          case 'Heavy Rain':
+            baseSpeed *= car.tire === 'Wet' ? 0.9 : 0.75;
+            break;
+        }
+
+        car.speed = baseSpeed;
       }
-
-      // Weather effect
-      switch (this.state.weather) {
-        case 'Light Rain':
-          baseSpeed *= car.tire === 'Intermediate' || car.tire === 'Wet' ? 0.95 : 0.85;
-          break;
-        case 'Heavy Rain':
-          baseSpeed *= car.tire === 'Wet' ? 0.9 : 0.75;
-          break;
-      }
-
-      car.speed = baseSpeed;
       
       // Update progress
       const distance = (car.speed * 1000 / 3600) * (delta / 60); // speed in m/s * delta time (adjust for 60fps)
@@ -111,7 +135,10 @@ export class RaceSimulation {
       car.totalDistance += distance;
       
       // Update tire wear
-      car.tireWear += (0.2 + Math.random() * 0.2) * (delta / 60);
+      let wearRate = 0.2;
+      if (car.tire === 'Soft') wearRate = 0.4;
+      if (car.tire === 'Hard') wearRate = 0.1;
+      car.tireWear += (wearRate + Math.random() * 0.1) * (delta / 60);
 
       // Handle lap completion
       if (car.progress >= 100) {
