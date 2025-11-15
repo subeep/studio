@@ -26,9 +26,6 @@ const FLAGS_DATA: { type: FlagType; label: string; description: string; icon: Re
   { type: 'Green', label: 'Green Flag', description: 'All clear. Racing continues as normal.', icon: <Flag className="h-5 w-5 text-green-500" /> },
   { type: 'Yellow', label: 'Yellow Flag', description: 'Hazard on track. Slow down, no overtaking.', icon: <Flag className="h-5 w-5 text-yellow-400" /> },
   { type: 'Red', label: 'Red Flag', description: 'Session stopped. Cars return to the pit lane.', icon: <Flag className="h-5 w-5 text-red-500" /> },
-  { type: 'Blue', label: 'Blue Flag', description: 'A faster car is approaching. Let them pass.', icon: <Flag className="h-5 w-5 text-blue-500" /> },
-  { type: 'White', label: 'White Flag', description: 'Slow-moving vehicle on track (e.g., an ambulance).', icon: <Flag className="h-5 w-5" /> },
-  { type: 'Checkered', label: 'Checkered Flag', description: 'The race has ended.', icon: <Flag className="h-5 w-5" /> },
   { type: 'SafetyCar', label: 'Safety Car', description: 'Safety car deployed. Cars must form a line behind it and hold position.', icon: <ChevronsRight className="h-5 w-5 text-yellow-400" /> },
 ];
 
