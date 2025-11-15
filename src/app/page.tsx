@@ -103,8 +103,12 @@ export default function CircuitVisionPage() {
   };
 
   const handleApplyFlag = (flag: FlagType) => {
-    if (simulation) {
-      simulation.setFlag(flag);
+    if (simulation && raceState) {
+       if (flag === 'Red') {
+        simulation.restartRace(raceState.cars);
+      } else {
+        simulation.setFlag(flag);
+      }
     }
     setIsFlagSelectorOpen(false);
   };
@@ -153,8 +157,8 @@ export default function CircuitVisionPage() {
           </div>
         </header>
 
-        <main className="container mx-auto grid grid-cols-1 gap-6 p-4 md:grid-cols-5">
-          <div className="md:col-span-3">
+        <main className="container mx-auto grid grid-cols-1 gap-6 p-4 md:grid-cols-3">
+          <div className="md:col-span-2">
             <div className="flex flex-col gap-6">
               <Card>
                 <CardContent className="p-2 sm:p-4">
@@ -168,7 +172,7 @@ export default function CircuitVisionPage() {
             </div>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-1">
             <Leaderboard
               cars={raceState.cars}
               onDriverSelect={handleDriverSelect}

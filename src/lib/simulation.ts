@@ -28,6 +28,7 @@ export class RaceSimulation {
       highlight: false,
       totalDistance: 0,
       drsStatus: false,
+      interval: 0,
     }));
 
     return {
@@ -58,15 +59,20 @@ export class RaceSimulation {
     return [{ type: 'FLAG_CHANGE', payload: { newFlag: flag }}];
   }
 
-
-  public restart(newCars: Car[]): void {
-    this.state = {
-        ...this.state, // Keep existing settings like weather
-        cars: newCars,
-        activeFlag: 'Green',
-    };
+  public restartRace(currentCars: Car[]): void {
+    // Reset progress to 0 for a standing start, but keep lap, position, etc.
+    const newCars = currentCars.map(car => ({
+      ...car,
+      progress: 0,
+      isPitting: false,
+      drsStatus: false,
+      speed: 180 + Math.random() * 40 - 20, // Reset to a base speed
+    }));
+    
+    this.state.cars = newCars;
+    this.state.activeFlag = 'Green';
     this.pitStopTimers.clear();
-    this.lastTick = null;
+    this.lastTick = null; // Ensure tick timer resets
   }
 
 
@@ -253,11 +259,8 @@ export class RaceSimulation {
 
     if (isOvertakingAllowed) {
         // Sort cars and handle overtakes
-        const oldOrder = JSON.parse(JSON.stringify(this.state.cars));
-        this.state.cars.sort((a, b) => {
-        if (a.lap !== b.lap) return b.lap - a.lap;
-        return b.progress - a.progress;
-        });
+        const oldOrder = [...this.state.cars];
+        this.state.cars.sort((a, b) => b.totalDistance - a.totalDistance);
 
         this.state.cars.forEach((car, index) => {
             const newPosition = index + 1;
@@ -273,41 +276,44 @@ export class RaceSimulation {
             }
             car.position = newPosition;
 
-            // DRS activation logic
+            // DRS activation logic & Interval calculation
             car.drsStatus = false;
-            if (index > 0) { // Can't activate DRS if in first place
+            if (index > 0) {
                 const carAhead = this.state.cars[index - 1];
-                const distanceToCarAhead = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100);
+                const distanceToCarAhead = carAhead.totalDistance - car.totalDistance;
+                const timeToCarAhead = distanceToCarAhead / (carAhead.speed / 3.6); // time in seconds
+                car.interval = timeToCarAhead;
+
                 const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
 
-                if (distanceToCarAhead < 0.01 && inDrsZone && this.state.weather === 'Dry' && this.state.activeFlag === 'Green') { // roughly within 1 second
+                if (timeToCarAhead < 1.0 && inDrsZone && this.state.weather === 'Dry' && this.state.activeFlag === 'Green') {
                     car.drsStatus = true;
                 }
+            } else {
+                car.interval = 0; // Leader has no interval
             }
         });
     } else {
-        // When overtaking is not allowed, cars should still "bunch up"
-        // We will sort them but not change their official position property
+        // When overtaking is not allowed, cars should still "bunch up" but not re-order
         this.state.cars.forEach((car, index) => {
             car.highlight = false; // no highlights during these periods
-            // DRS is always off
-            car.drsStatus = false;
+            car.drsStatus = false; // DRS is always off
 
             if (index > 0) {
                 const carAhead = this.state.cars[index -1];
-                 // Calculate the total progress of each car
-                const carAheadTotalProgress = carAhead.lap + (carAhead.progress / 100);
-                const currentCarTotalProgress = car.lap + (car.progress / 100);
+                const carAheadTotalDistance = carAhead.totalDistance;
+                const currentCarTotalDistance = car.totalDistance;
 
                 // If current car is ahead of the car that should be in front, slow it down
-                if (currentCarTotalProgress > carAheadTotalProgress) {
-                    const difference = currentCarTotalProgress - carAheadTotalProgress;
-                    // Reduce progress to stay behind, adding a tiny gap
-                    car.progress -= (difference * 100) + 0.01;
-                    if(car.progress < 0) {
-                        car.lap -= 1;
-                        car.progress += 100;
-                    }
+                // and move it back, maintaining a small gap.
+                if (currentCarTotalDistance > carAheadTotalDistance) {
+                   const distanceToPullBack = currentCarTotalDistance - carAheadTotalDistance;
+                   car.totalDistance -= (distanceToPullBack + 5); // 5 meter gap
+                   // Recalculate progress based on new totalDistance
+                   const lapsCompleted = Math.floor(car.totalDistance / this.state.track.length);
+                   car.lap = lapsCompleted + 1;
+                   const distanceIntoLap = car.totalDistance % this.state.track.length;
+                   car.progress = (distanceIntoLap / this.state.track.length) * 100;
                 }
             }
         })
