@@ -19,8 +19,8 @@ export const DRIVERS: Driver[] = [
   { id: 'ric', name: 'Daniel Ricciardo', team: 'RB', color: '#6692FF', tricode: 'RIC' },
   { id: 'bot', name: 'Valtteri Bottas', team: 'Sauber', color: '#52E252', tricode: 'BOT' },
   { id: 'zho', name: 'Guanyu Zhou', team: 'Sauber', color: '#52E252', tricode: 'ZHO' },
-  { id: 'mag', name: 'Kevin Magnussen', team: 'Haas', color: '#B6BABD', tricode: 'MAG' },
-  { id: 'hul', name: 'Nico Hülkenberg', team: 'Haas', color: '#B6BABD', tricode: 'HUL' },
+  { id: 'mag', name: 'Oliver Bearman', team: 'Haas', color: '#B6BABD', tricode: 'MAG' },
+  { id: 'hul', name: 'Esteban Ocon ', team: 'Haas', color: '#B6BABD', tricode: 'HUL' },
 ];
 
 export const RACE_TRACK: Track = {

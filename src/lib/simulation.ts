@@ -84,16 +84,6 @@ export class RaceSimulation {
         return [];
     }
 
-    // Weather changes
-    if (Math.random() < 0.0005) { 
-      const weathers: Weather[] = ['Dry', 'Light Rain', 'Heavy Rain'];
-      const newWeather = weathers[Math.floor(Math.random() * weathers.length)];
-      if (newWeather !== this.state.weather) {
-        this.state.weather = newWeather;
-        events.push({ type: 'WEATHER_CHANGE', payload: { newWeather } });
-      }
-    }
-
     // Update each car
     this.state.cars.forEach(car => {
       // Handle pitting
