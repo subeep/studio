@@ -78,7 +78,7 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
     const sim = simulationRef.current;
     if (sim) {
         sim.state.cars.forEach(car => {
-            const carDocRef = doc(carsCol.ref, car.driver.id);
+            const carDocRef = doc(carsColRef, car.driver.id);
             const unsubscribe = onSnapshot(carDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const dbCar = docSnap.data() as Car;
