@@ -1,7 +1,7 @@
 'use client';
 
 import { RACE_TRACK, TOTAL_LAPS } from './constants';
-import type { Car, RaceState, RaceEvent, Weather, Tire, FlagType } from './types';
+import type { Car, RaceState, RaceEvent, Weather, Tire, FlagType, WindDirection } from './types';
 import type { SimulationSettings } from '@/components/simulation-setup';
 
 export class RaceSimulation {
@@ -10,11 +10,13 @@ export class RaceSimulation {
   private lastTick: number | null = null;
   private manualOverrides: Map<string, { speed?: number; tire?: Tire }> = new Map();
   private weatherChangeTimer: number = 0;
+  private windChangeTimer: number = 0;
   private trackWetness: number = 0; // 0 = Dry, 100 = Very Wet
 
   constructor(settings: SimulationSettings) {
     this.state = this.getInitialRaceState(settings);
     this.weatherChangeTimer = 20 + Math.random() * 40; // Change weather every 20-60s
+    this.windChangeTimer = 15 + Math.random() * 30; // Change wind every 15-45s
   }
 
   private getInitialRaceState(settings: SimulationSettings): RaceState {
@@ -42,6 +44,8 @@ export class RaceSimulation {
       totalLaps: TOTAL_LAPS,
       weather: settings.weather,
       trackCondition: this.getTrackConditionFromWetness(),
+      windSpeed: 5 + Math.random() * 15, // 5-20 km/h
+      windDirection: 'Headwind',
       cars,
       track: RACE_TRACK,
       isFinished: false,
@@ -148,6 +152,15 @@ export class RaceSimulation {
         this.weatherChangeTimer = 20 + Math.random() * 40;
     }
     
+    // Update wind
+    this.windChangeTimer -= delta;
+    if (this.windChangeTimer <= 0) {
+      const directions: WindDirection[] = ['Headwind', 'Tailwind', 'Crosswind'];
+      this.state.windDirection = directions[Math.floor(Math.random() * directions.length)];
+      this.state.windSpeed = 5 + Math.random() * 25; // 5-30 km/h
+      this.windChangeTimer = 15 + Math.random() * 30;
+    }
+
     // Update track wetness
     if (this.state.weather === 'Light Rain') {
         this.trackWetness = Math.min(100, this.trackWetness + delta * 2); // gets wetter slowly
@@ -269,6 +282,16 @@ export class RaceSimulation {
           break;
       }
       
+      // Wind Effect
+      let windEffect = 0;
+      if (this.state.windDirection === 'Tailwind') {
+        windEffect = this.state.windSpeed * 0.2; // Tailwind provides a small boost
+      } else if (this.state.windDirection === 'Headwind') {
+        windEffect = -this.state.windSpeed * 0.3; // Headwind has a slightly stronger negative effect
+      }
+      car.speed += windEffect;
+
+
       // Apply flag speed multiplier
       car.speed *= speedMultiplier;
 

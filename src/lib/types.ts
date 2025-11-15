@@ -27,6 +27,8 @@ export interface Car {
 
 export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';
 
+export type WindDirection = 'Headwind' | 'Tailwind' | 'Crosswind';
+
 export type FlagType = 'Green' | 'Yellow' | 'Red' | 'SafetyCar' | 'Checkered';
 
 export type TrackCondition = 'Dry' | 'Damp' | 'Wet' | 'Very Wet';
@@ -44,6 +46,8 @@ export interface RaceState {
   totalLaps: number;
   weather: Weather;
   trackCondition: TrackCondition;
+  windSpeed: number; // in km/h
+  windDirection: WindDirection;
   cars: Car[];
   track: Track;
   isFinished?: boolean;
@@ -59,3 +63,11 @@ export type RaceEvent =
   | { type: 'FLAG_CHANGE'; payload: { newFlag: FlagType } }
   | { type: 'RACE_START' }
   | { type: 'RACE_FINISH' };
+
+export interface LogEntry {
+  timestamp: number;
+  lap: number;
+  speed: number;
+  tireWear: number;
+  fuel: number;
+}

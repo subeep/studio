@@ -1,6 +1,6 @@
 'use client';
 
-import type { Car, Tire } from '@/lib/types';
+import type { Car, Tire, LogEntry } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, BrainCircuit, Fuel } from 'lucide-react';
@@ -12,6 +12,7 @@ import { predictOptimalPitStop, type PredictOptimalPitStopOutput } from '@/ai/fl
 import { Skeleton } from './ui/skeleton';
 import { TOTAL_LAPS } from '@/lib/constants';
 import { Progress } from './ui/progress';
+import { DataLog } from './data-log';
 
 interface ProfileDashboardProps {
   car: Car | null;
@@ -88,12 +89,36 @@ function PitStopPrediction({ car }: { car: Car }) {
 
 export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDashboardProps) {
   const [speed, setSpeed] = useState(car?.speed || 0);
+  const [log, setLog] = useState<LogEntry[]>([]);
 
   useEffect(() => {
     if (car) {
       setSpeed(car.speed);
+    } else {
+        setLog([]);
     }
   }, [car]);
+
+  useEffect(() => {
+    if (!car) return;
+
+    const intervalId = setInterval(() => {
+      setLog(prevLog => {
+        const newEntry: LogEntry = {
+          timestamp: Date.now(),
+          lap: car.lap,
+          speed: car.speed,
+          tireWear: car.tireWear,
+          fuel: car.fuel,
+        };
+        // Keep the log from getting too long
+        return [newEntry, ...prevLog].slice(0, 100);
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [car]);
+
 
   if (!car) {
     return (
@@ -118,6 +143,7 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
@@ -199,5 +225,7 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
         </div>
       </CardContent>
     </Card>
+    <DataLog log={log} />
+    </>
   );
 }

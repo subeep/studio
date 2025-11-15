@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { FlagSelector } from '@/components/flag-selector';
 import { FlagNotification } from '@/components/flag-notification';
 import { TrackCondition } from '@/components/track-condition';
+import { WindIndicator } from '@/components/wind-indicator';
 
 export default function CircuitVisionPage() {
   const [settings, setSettings] = React.useState<SimulationSettings | null>(null);
@@ -181,6 +182,7 @@ export default function CircuitVisionPage() {
               selectedCarId={selectedCar?.driver.id}
             />
             <TrackCondition condition={raceState.trackCondition} />
+            <WindIndicator speed={raceState.windSpeed} direction={raceState.windDirection} />
           </div>
         </main>
       </div>
