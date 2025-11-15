@@ -9,7 +9,6 @@ export class RaceSimulation {
   private pitStopTimers: Map<string, number> = new Map();
   private lastTick: number | null = null;
   private manualOverrides: Map<string, { speed?: number; tire?: Tire }> = new Map();
-  private weatherChangeTimer: number = 0;
   private windChangeTimer: number = 0;
   private trackWetness: number = 0; // 0 = Dry, 100 = Very Wet
   private logCallback: (logEntry: LogEntry) => void;
@@ -18,7 +17,6 @@ export class RaceSimulation {
   constructor(settings: SimulationSettings, logCallback: (logEntry: LogEntry) => void) {
     this.logCallback = logCallback;
     this.state = this.getInitialRaceState(settings);
-    this.weatherChangeTimer = 20 + Math.random() * 40; // Change weather every 20-60s
     this.windChangeTimer = 15 + Math.random() * 30; // Change wind every 15-45s
   }
 
@@ -141,18 +139,6 @@ export class RaceSimulation {
         return [];
     }
     
-    // Update weather and track condition
-    this.weatherChangeTimer -= delta;
-    if (this.weatherChangeTimer <= 0) {
-        const weatherOptions: Weather[] = ['Dry', 'Light Rain', 'Heavy Rain'];
-        const newWeather = weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
-        if (newWeather !== this.state.weather) {
-            this.state.weather = newWeather;
-            events.push({ type: 'WEATHER_CHANGE', payload: { newWeather }});
-        }
-        this.weatherChangeTimer = 20 + Math.random() * 40;
-    }
-    
     // Update wind
     this.windChangeTimer -= delta;
     if (this.windChangeTimer <= 0) {
@@ -162,13 +148,13 @@ export class RaceSimulation {
       this.windChangeTimer = 15 + Math.random() * 30;
     }
 
-    // Update track wetness
+    // Update track wetness based on static weather
     if (this.state.weather === 'Light Rain') {
-        this.trackWetness = Math.min(100, this.trackWetness + delta * 2); // gets wetter slowly
+      this.trackWetness = 40;
     } else if (this.state.weather === 'Heavy Rain') {
-        this.trackWetness = Math.min(100, this.trackWetness + delta * 5); // gets wetter quickly
+      this.trackWetness = 80;
     } else {
-        this.trackWetness = Math.max(0, this.trackWetness - delta * 1); // dries slowly
+      this.trackWetness = 0;
     }
     this.state.trackCondition = this.getTrackConditionFromWetness();
 
