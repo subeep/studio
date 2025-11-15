@@ -37,7 +37,11 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
   useEffect(() => {
     if (!simulationRef.current || !isInitialized) return;
 
+    let isLooping = true;
+    
     const gameLoop = () => {
+      if (!isLooping) return;
+
       if (simulationRef.current && !isPaused) {
         const newEvents = simulationRef.current.tick();
         if (newEvents.length > 0) {
@@ -61,9 +65,10 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
       animationFrameId.current = requestAnimationFrame(gameLoop);
     };
 
-    animationFrameId.current = requestAnimationFrame(gameLoop);
+    gameLoop();
 
     return () => {
+      isLooping = false;
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }

@@ -7,7 +7,7 @@ import type { SimulationSettings } from '@/components/simulation-setup';
 export class RaceSimulation {
   public state: RaceState;
   private pitStopTimers: Map<string, number> = new Map();
-  private lastTick: number = Date.now();
+  private lastTick: number | null = null;
   private manualOverrides: Map<string, { speed?: number; tire?: Tire }> = new Map();
 
   constructor(settings: SimulationSettings) {
@@ -46,7 +46,7 @@ export class RaceSimulation {
         cars: newCars,
     };
     this.pitStopTimers.clear();
-    this.lastTick = Date.now();
+    this.lastTick = null;
   }
 
 
@@ -76,6 +76,10 @@ export class RaceSimulation {
   
   tick(): RaceEvent[] {
     const now = Date.now();
+    if(this.lastTick === null) {
+      this.lastTick = now;
+      return [];
+    }
     const delta = (now - this.lastTick) / (1000); // time in seconds
     this.lastTick = now;
 
