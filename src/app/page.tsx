@@ -60,18 +60,22 @@ export default function CircuitVisionPage() {
     if (firestore) {
       const carRef = doc(firestore, 'races', 'race1', 'cars', carId);
       
-      // Get the car's current state from the database to ensure we have the latest speed
       const carSnap = await getDoc(carRef);
       if (!carSnap.exists()) return;
 
       const carData = carSnap.data() as Car;
       const originalSpeed = carData.speed;
 
-      // Introduce a 2-second penalty by briefly reducing speed for this car only
-      await setDoc(carRef, { speed: originalSpeed * 0.9 }, { merge: true });
+      // Immediately set the new tire, reset wear, and apply the speed penalty.
+      await setDoc(carRef, { 
+        tire: newTire, 
+        tireWear: 0,
+        speed: originalSpeed * 0.9 
+      }, { merge: true });
       
+      // After 2 seconds, restore the original speed.
       setTimeout(async () => {
-        await setDoc(carRef, { tire: newTire, tireWear: 0, speed: originalSpeed }, { merge: true });
+        await setDoc(carRef, { speed: originalSpeed }, { merge: true });
       }, 2000);
     }
   };
