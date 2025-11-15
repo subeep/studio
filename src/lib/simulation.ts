@@ -124,7 +124,7 @@ export class RaceSimulation {
         car.speed = override.speed;
       } else {
         // Update speed based on various factors
-        let baseSpeed = 280;
+        let baseSpeed = 300;
         baseSpeed *= (1 - car.tireWear / 200);
 
         car.speed = baseSpeed;
@@ -159,6 +159,9 @@ export class RaceSimulation {
           break;
       }
       
+      // Enforce hard speed limit
+      car.speed = Math.min(car.speed, 330);
+
       // Update progress
       const distance = (car.speed * 1000 / 3600) * delta; 
       car.progress += (distance / this.state.track.length) * 100;
