@@ -19,11 +19,12 @@ import { FlagSelector } from '@/components/flag-selector';
 import { FlagNotification } from '@/components/flag-notification';
 import { TrackCondition } from '@/components/track-condition';
 import { WindIndicator } from '@/components/wind-indicator';
+import { DataLog } from '@/components/data-log';
 
 export default function CircuitVisionPage() {
   const [settings, setSettings] = React.useState<SimulationSettings | null>(null);
   const [isPaused, setIsPaused] = React.useState(false);
-  const { raceState, events, isInitialized, simulation } = useRaceSimulation(settings, isPaused);
+  const { raceState, events, isInitialized, simulation, log } = useRaceSimulation(settings, isPaused);
   const [selectedCar, setSelectedCar] = React.useState<Car | null>(null);
   const [isFlagSelectorOpen, setIsFlagSelectorOpen] = React.useState(false);
 
@@ -183,6 +184,7 @@ export default function CircuitVisionPage() {
             />
             <TrackCondition condition={raceState.trackCondition} />
             <WindIndicator speed={raceState.windSpeed} direction={raceState.windDirection} />
+            <DataLog log={log} />
           </div>
         </main>
       </div>

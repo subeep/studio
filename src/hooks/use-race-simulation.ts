@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { RaceSimulation } from '@/lib/simulation';
-import type { RaceState, RaceEvent, Car, Weather, Tire } from '@/lib/types';
+import type { RaceState, RaceEvent, Car, Weather, Tire, LogEntry } from '@/lib/types';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import type { SimulationSettings } from '@/components/simulation-setup';
@@ -10,6 +10,7 @@ import type { SimulationSettings } from '@/components/simulation-setup';
 export const useRaceSimulation = (settings: SimulationSettings | null, isPaused: boolean) => {
   const [raceState, setRaceState] = useState<RaceState | null>(null);
   const [events, setEvents] = useState<RaceEvent[]>([]);
+  const [log, setLog] = useState<LogEntry[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const simulationRef = useRef<RaceSimulation | null>(null);
   const animationFrameId = useRef<number>();
@@ -26,7 +27,9 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
 
   useEffect(() => {
     if (settings && !simulationRef.current) {
-      const sim = new RaceSimulation(settings);
+      const sim = new RaceSimulation(settings, (newLogEntry: LogEntry) => {
+        setLog(prevLog => [newLogEntry, ...prevLog].slice(0, 100));
+      });
       simulationRef.current = sim;
       setRaceState(sim.state);
       setEvents([{ type: 'RACE_START' }]);
@@ -104,5 +107,5 @@ export const useRaceSimulation = (settings: SimulationSettings | null, isPaused:
   }, [carsColRef, isInitialized]);
 
 
-  return { raceState, events, isInitialized, simulation: simulationRef.current };
+  return { raceState, events, isInitialized, simulation: simulationRef.current, log };
 };

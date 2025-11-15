@@ -1,7 +1,7 @@
 'use client';
 
 import { RACE_TRACK, TOTAL_LAPS } from './constants';
-import type { Car, RaceState, RaceEvent, Weather, Tire, FlagType, WindDirection } from './types';
+import type { Car, RaceState, RaceEvent, Weather, Tire, FlagType, WindDirection, LogEntry } from './types';
 import type { SimulationSettings } from '@/components/simulation-setup';
 
 export class RaceSimulation {
@@ -12,8 +12,11 @@ export class RaceSimulation {
   private weatherChangeTimer: number = 0;
   private windChangeTimer: number = 0;
   private trackWetness: number = 0; // 0 = Dry, 100 = Very Wet
+  private logCallback: (logEntry: LogEntry) => void;
+  private logTimer: number = 0;
 
-  constructor(settings: SimulationSettings) {
+  constructor(settings: SimulationSettings, logCallback: (logEntry: LogEntry) => void) {
+    this.logCallback = logCallback;
     this.state = this.getInitialRaceState(settings);
     this.weatherChangeTimer = 20 + Math.random() * 40; // Change weather every 20-60s
     this.windChangeTimer = 15 + Math.random() * 30; // Change wind every 15-45s
@@ -25,7 +28,7 @@ export class RaceSimulation {
       position: index + 1,
       lap: 1,
       progress: 0,
-      speed: 180 + Math.random() * 40 - 20,
+      speed: 180 + Math.random() * 20 - 10, // Reduced variance
       tire: settings.tires[driver.id] || 'Medium',
       tireWear: 0,
       isPitting: false,
@@ -84,7 +87,7 @@ export class RaceSimulation {
       progress: 0,
       isPitting: false,
       drsStatus: false,
-      speed: 180 + Math.random() * 40 - 20, // Reset to a base speed
+      speed: 180 + Math.random() * 20 - 10, // Reset to a base speed
     }));
     
     this.state.cars = newCars;
@@ -213,6 +216,7 @@ export class RaceSimulation {
           car.tireWear = 0;
           car.fuel = 100; // Refuel on pit stop
           events.push({ type: 'PIT_STOP_END', payload: { driverId: car.driver.id } });
+          this.logCallback({ timestamp: Date.now(), carName: car.driver.tricode, lap: car.lap, position: car.position, speed: car.speed, tire: car.tire, message: `Exits the pit lane on ${car.tire} tires.` });
         } else {
           this.pitStopTimers.set(car.driver.id, time);
         }
@@ -234,6 +238,7 @@ export class RaceSimulation {
         car.pitStops += 1;
         this.pitStopTimers.set(car.driver.id, 2 + Math.random()); // Pit stop duration
         events.push({ type: 'PIT_STOP_START', payload: { driverId: car.driver.id } });
+        this.logCallback({ timestamp: Date.now(), carName: car.driver.tricode, lap: car.lap, position: car.position, speed: car.speed, tire: car.tire, message: 'Boxes for a pit stop.' });
         return;
       }
       
@@ -342,6 +347,7 @@ export class RaceSimulation {
                 if(overtakenCar) {
                     events.push({ type: 'OVERTAKE', payload: { overtakingCarId: car.driver.id, overtakenCarId: overtakenCar.driver.id } });
                     car.highlight = true;
+                    this.logCallback({ timestamp: Date.now(), carName: car.driver.tricode, lap: car.lap, position: newPosition, speed: car.speed, tire: car.tire, message: `Overtakes ${overtakenCar.driver.tricode} for P${newPosition}` });
                 }
             } else {
                 car.highlight = false;
@@ -390,6 +396,16 @@ export class RaceSimulation {
                 }
             }
         })
+    }
+
+    // Periodic logging
+    this.logTimer -= delta;
+    if (this.logTimer <= 0) {
+      const leader = this.state.cars[0];
+      if (leader) {
+        this.logCallback({ timestamp: Date.now(), carName: leader.driver.tricode, lap: leader.lap, position: 1, speed: leader.speed, tire: leader.tire, message: 'Current race leader update.' });
+      }
+      this.logTimer = 5; // Log every 5 seconds
     }
 
 

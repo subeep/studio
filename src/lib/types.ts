@@ -66,8 +66,10 @@ export type RaceEvent =
 
 export interface LogEntry {
   timestamp: number;
+  carName: string;
   lap: number;
+  position: number;
   speed: number;
-  tireWear: number;
-  fuel: number;
+  tire: Tire;
+  message: string;
 }
