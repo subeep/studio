@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { RaceSimulation } from '@/lib/simulation';
 import type { RaceState, RaceEvent, Car } from '@/lib/types';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -14,6 +14,8 @@ export const useRaceSimulation = () => {
   const animationFrameId = useRef<number>();
   const firestore = useFirestore();
   const { user } = useUser();
+  const lastWriteTime = useRef(0);
+  const WRITE_INTERVAL = 500; // Write to Firestore every 500ms
 
   const carsColRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -39,12 +41,14 @@ export const useRaceSimulation = () => {
         
         const currentState = simulationRef.current.state;
 
-        // Write to firestore non-blockingly
-        if (firestore && user) {
+        // Write to firestore non-blockingly at a throttled rate
+        const now = Date.now();
+        if (firestore && user && now - lastWriteTime.current > WRITE_INTERVAL) {
             currentState.cars.forEach(car => {
                 const carRef = doc(firestore, 'races', 'race1', 'cars', car.driver.id);
                 setDoc(carRef, car, { merge: true });
             });
+            lastWriteTime.current = now;
         }
 
         setRaceState({ ...currentState });
@@ -52,10 +56,9 @@ export const useRaceSimulation = () => {
       animationFrameId.current = requestAnimationFrame(gameLoop);
     };
 
-    const intervalId = setInterval(gameLoop, 1000 / 60);
+    animationFrameId.current = requestAnimationFrame(gameLoop);
 
     return () => {
-      clearInterval(intervalId);
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }

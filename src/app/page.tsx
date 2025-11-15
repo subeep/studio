@@ -34,6 +34,8 @@ export default function CircuitVisionPage() {
   React.useEffect(() => {
     if (user && isInitialized && raceState) {
         const raceRef = doc(firestore, 'races', 'race1');
+        setDoc(raceRef, {id: 'race1', weatherConditions: raceState.weather, timestamp: new Date().toISOString() }, { merge: true });
+
         DRIVERS.forEach(driver => {
             const carRef = doc(raceRef, 'cars', driver.id);
             const carData = raceState.cars.find(c => c.driver.id === driver.id);
