@@ -1,0 +1,276 @@
+{
+  "entities": {
+    "Race": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Race",
+      "type": "object",
+      "description": "Represents a Formula 1 race simulation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the race."
+        },
+        "weatherConditions": {
+          "type": "string",
+          "description": "Current weather conditions of the race (e.g., dry, wet, intermediate)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp when the race data was recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "weatherConditions",
+        "timestamp"
+      ]
+    },
+    "Driver": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Driver",
+      "type": "object",
+      "description": "Represents a Formula 1 driver.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the driver."
+        },
+        "name": {
+          "type": "string",
+          "description": "The driver's full name."
+        },
+        "team": {
+          "type": "string",
+          "description": "The driver's racing team."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "team"
+      ]
+    },
+    "Car": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Car",
+      "type": "object",
+      "description": "Represents a Formula 1 car in the race.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the car."
+        },
+        "driverId": {
+          "type": "string",
+          "description": "Reference to Driver. (Relationship: Driver 1:1 Car)"
+        },
+        "raceId": {
+          "type": "string",
+          "description": "Reference to Race. (Relationship: Race 1:N Car)"
+        },
+        "speed": {
+          "type": "number",
+          "description": "The car's current speed."
+        },
+        "tyreCompound": {
+          "type": "string",
+          "description": "The current tyre compound being used (e.g., hard, medium, soft)."
+        },
+        "drsStatus": {
+          "type": "boolean",
+          "description": "The current drs usage of the driver."
+        }
+      },
+      "required": [
+        "id",
+        "driverId",
+        "raceId",
+        "speed",
+        "tyreCompound"
+      ]
+    },
+    "PitStop": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PitStop",
+      "type": "object",
+      "description": "Represents a pit stop event for a car during the race.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the pit stop event."
+        },
+        "carId": {
+          "type": "string",
+          "description": "Reference to Car. (Relationship: Car 1:N PitStop)"
+        },
+        "lapNumber": {
+          "type": "number",
+          "description": "The lap number when the pit stop occurred."
+        },
+        "tyreChange": {
+          "type": "string",
+          "description": "The tyre compound the car changed to during the pit stop."
+        },
+        "duration": {
+          "type": "number",
+          "description": "The duration of the pit stop in seconds."
+        }
+      },
+      "required": [
+        "id",
+        "carId",
+        "lapNumber",
+        "tyreChange",
+        "duration"
+      ]
+    },
+    "RacePosition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RacePosition",
+      "type": "object",
+      "description": "Represents the position of a car in a race at a given time.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the race position."
+        },
+        "raceId": {
+          "type": "string",
+          "description": "Reference to Race. (Relationship: Race 1:N RacePosition)"
+        },
+        "carId": {
+          "type": "string",
+          "description": "Reference to Car. (Relationship: Car 1:N RacePosition)"
+        },
+        "lapNumber": {
+          "type": "number",
+          "description": "The current lap number."
+        },
+        "position": {
+          "type": "number",
+          "description": "The car's position in the race."
+        },
+        "interval": {
+          "type": "number",
+          "description": "The time interval between this car and the car in front (in seconds)."
+        }
+      },
+      "required": [
+        "id",
+        "raceId",
+        "carId",
+        "lapNumber",
+        "position",
+        "interval"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/races/{raceId}",
+        "definition": {
+          "entityName": "Race",
+          "schema": {
+            "$ref": "#/backend/entities/Race"
+          },
+          "description": "Stores data for each Formula 1 race simulation.",
+          "params": [
+            {
+              "name": "raceId",
+              "description": "Unique identifier for the race."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/drivers/{driverId}",
+        "definition": {
+          "entityName": "Driver",
+          "schema": {
+            "$ref": "#/backend/entities/Driver"
+          },
+          "description": "Stores data for each Formula 1 driver.",
+          "params": [
+            {
+              "name": "driverId",
+              "description": "Unique identifier for the driver."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/races/{raceId}/cars/{carId}",
+        "definition": {
+          "entityName": "Car",
+          "schema": {
+            "$ref": "#/backend/entities/Car"
+          },
+          "description": "Stores data for each car in a race, including speed and tire compound.",
+          "params": [
+            {
+              "name": "raceId",
+              "description": "Unique identifier for the race."
+            },
+            {
+              "name": "carId",
+              "description": "Unique identifier for the car."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/races/{raceId}/cars/{carId}/pit_stops/{pitStopId}",
+        "definition": {
+          "entityName": "PitStop",
+          "schema": {
+            "$ref": "#/backend/entities/PitStop"
+          },
+          "description": "Stores data for each pit stop event, including lap number and tyre changes.",
+          "params": [
+            {
+              "name": "raceId",
+              "description": "Unique identifier for the race."
+            },
+            {
+              "name": "carId",
+              "description": "Unique identifier for the car."
+            },
+            {
+              "name": "pitStopId",
+              "description": "Unique identifier for the pit stop event."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/races/{raceId}/race_positions/{racePositionId}",
+        "definition": {
+          "entityName": "RacePosition",
+          "schema": {
+            "$ref": "#/backend/entities/RacePosition"
+          },
+          "description": "Stores race position data for each car in the race, including lap number, position, and interval.",
+          "params": [
+            {
+              "name": "raceId",
+              "description": "Unique identifier for the race."
+            },
+            {
+              "name": "racePositionId",
+              "description": "Unique identifier for the race position."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the Circuit Vision application's real-time race simulation and leaderboard features, with a focus on security and scalability. Authorization Independence is achieved through path-based ownership for user-specific data and denormalization for collaborative data. Segregation is used to separate different data types with varying access requirements. The structure also considers the need to efficiently query and update race data in real-time.\n\nSpecifically, the structure implements the following key aspects to achieve the stated goals:\n\n*   **Authorization Independence**: Authorization is done through path-based ownership. Therefore, there are no dependencies on `get()` calls in the rules. This facilitates atomic operations.\n*   **DBAC**: Role-based access control is achieved through path-based ownership, eliminating the need for custom claims.\n*   **QAPs**: List operations are secured through structural segregation.\n\nThe structure provided allows for:\n\n1.  Storing race data, including weather conditions and timestamps.\n2.  Associating drivers with specific cars and races.\n3.  Tracking car speeds, tire compounds, and DRS status during the race.\n4.  Recording pit stop events, including lap number and tyre changes.\n5.  Maintaining real-time race positions for each car.\n\nThis design enables efficient data retrieval and updates for real-time race visualization and leaderboard functionality, fulfilling the application's core requirements."
+  }
+}

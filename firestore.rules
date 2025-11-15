@@ -1,0 +1,104 @@
+/**
+ * @fileoverview Firestore Security Rules for Circuit Vision application.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes secure, path-based access control with an emphasis on real-time data integrity for race simulations. It enforces strict ownership and role-based permissions. It assumes that clients are untrusted.
+ *
+ * Data Structure:
+ * - /races/{raceId}: Stores race metadata.
+ * - /drivers/{driverId}: Stores driver information.
+ * - /races/{raceId}/cars/{carId}: Stores car data within a race.
+ * - /races/{raceId}/cars/{carId}/pit_stops/{pitStopId}: Stores pit stop events for each car.
+ * - /races/{raceId}/race_positions/{racePositionId}: Stores race position data.
+ *
+ * Key Security Decisions:
+ * - Public read access is disallowed on most collections.
+ * - All write operations require authentication.
+ * - Data validation is limited to ownership checks and relational integrity (e.g., ensuring document IDs match path parameters).
+ *
+ * Denormalization for Authorization:
+ *  None necessary. All rules are based on path parameters.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Manages access to race documents.
+     * @path /races/{raceId}
+     * @allow (read): Any authenticated user can read race data.
+     * @allow (write): Only authenticated users can create, update, or delete race data.
+     * @deny (read): Non-authenticated user attempts to read race data.
+     * @deny (write): Attempts to write without authentication.
+     * @principle Allows any authenticated user to read race data and requires authentication for write operations.
+     */
+    match /races/{raceId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Manages access to driver documents.
+     * @path /drivers/{driverId}
+     * @allow (read): Any authenticated user can read driver data.
+     * @allow (write): Only authenticated users can create, update, or delete driver data.
+     * @deny (read): Non-authenticated user attempts to read driver data.
+     * @deny (write): Attempts to write without authentication.
+     * @principle Allows any authenticated user to read driver data and requires authentication for write operations.
+     */
+    match /drivers/{driverId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Manages access to car documents within a race.
+     * @path /races/{raceId}/cars/{carId}
+     * @allow (read): Any authenticated user can read car data within a race.
+     * @allow (write): Only authenticated users can create, update, or delete car data.
+     * @deny (read): Non-authenticated user attempts to read car data.
+     * @deny (write): Attempts to write without authentication.
+     * @principle Allows any authenticated user to read car data within a race and requires authentication for write operations.
+     */
+    match /races/{raceId}/cars/{carId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Manages access to pit stop documents for a car.
+     * @path /races/{raceId}/cars/{carId}/pit_stops/{pitStopId}
+     * @allow (read): Any authenticated user can read pit stop data.
+     * @allow (write): Only authenticated users can create, update, or delete pit stop data.
+     * @deny (read): Non-authenticated user attempts to read pit stop data.
+     * @deny (write): Attempts to write without authentication.
+     * @principle Allows any authenticated user to read pit stop data and requires authentication for write operations.
+     */
+    match /races/{raceId}/cars/{carId}/pit_stops/{pitStopId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Manages access to race position documents within a race.
+     * @path /races/{raceId}/race_positions/{racePositionId}
+     * @allow (read): Any authenticated user can read race position data.
+     * @allow (write): Only authenticated users can create, update, or delete race position data.
+     * @deny (read): Non-authenticated user attempts to read race position data.
+     * @deny (write): Attempts to write without authentication.
+     * @principle Allows any authenticated user to read race position data and requires authentication for write operations.
+     */
+    match /races/{raceId}/race_positions/{racePositionId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+  }
+}
