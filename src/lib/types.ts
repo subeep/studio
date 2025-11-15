@@ -29,6 +29,8 @@ export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';
 
 export type FlagType = 'Green' | 'Yellow' | 'Red' | 'SafetyCar' | 'Checkered';
 
+export type TrackCondition = 'Dry' | 'Damp' | 'Wet' | 'Very Wet';
+
 export interface Track {
   name: string;
   path: string;
@@ -41,6 +43,7 @@ export interface RaceState {
   lap: number;
   totalLaps: number;
   weather: Weather;
+  trackCondition: TrackCondition;
   cars: Car[];
   track: Track;
   isFinished?: boolean;

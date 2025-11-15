@@ -17,6 +17,7 @@ import { SimulationSetup, type SimulationSettings } from '@/components/simulatio
 import { Button } from '@/components/ui/button';
 import { FlagSelector } from '@/components/flag-selector';
 import { FlagNotification } from '@/components/flag-notification';
+import { TrackCondition } from '@/components/track-condition';
 
 export default function CircuitVisionPage() {
   const [settings, setSettings] = React.useState<SimulationSettings | null>(null);
@@ -172,13 +173,14 @@ export default function CircuitVisionPage() {
             </div>
           </div>
 
-          <div className="md:col-span-1">
+          <div className="md:col-span-1 flex flex-col gap-6">
             <Leaderboard
               cars={raceState.cars}
               onDriverSelect={handleDriverSelect}
               events={events}
               selectedCarId={selectedCar?.driver.id}
             />
+            <TrackCondition condition={raceState.trackCondition} />
           </div>
         </main>
       </div>

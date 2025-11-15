@@ -9,9 +9,12 @@ export class RaceSimulation {
   private pitStopTimers: Map<string, number> = new Map();
   private lastTick: number | null = null;
   private manualOverrides: Map<string, { speed?: number; tire?: Tire }> = new Map();
+  private weatherChangeTimer: number = 0;
+  private trackWetness: number = 0; // 0 = Dry, 100 = Very Wet
 
   constructor(settings: SimulationSettings) {
     this.state = this.getInitialRaceState(settings);
+    this.weatherChangeTimer = 20 + Math.random() * 40; // Change weather every 20-60s
   }
 
   private getInitialRaceState(settings: SimulationSettings): RaceState {
@@ -31,11 +34,14 @@ export class RaceSimulation {
       interval: 0,
       fuel: 100,
     }));
+    
+    this.trackWetness = settings.weather === 'Dry' ? 0 : settings.weather === 'Light Rain' ? 40 : 80;
 
     return {
       lap: 1,
       totalLaps: TOTAL_LAPS,
       weather: settings.weather,
+      trackCondition: this.getTrackConditionFromWetness(),
       cars,
       track: RACE_TRACK,
       isFinished: false,
@@ -43,6 +49,13 @@ export class RaceSimulation {
     };
   }
   
+  private getTrackConditionFromWetness() {
+    if (this.trackWetness < 10) return 'Dry';
+    if (this.trackWetness < 40) return 'Damp';
+    if (this.trackWetness < 80) return 'Wet';
+    return 'Very Wet';
+  }
+
   public setFlag(flag: FlagType): RaceEvent[] {
     if (this.state.activeFlag === flag) return [];
     this.state.activeFlag = flag;
@@ -123,6 +136,29 @@ export class RaceSimulation {
         return [];
     }
     
+    // Update weather and track condition
+    this.weatherChangeTimer -= delta;
+    if (this.weatherChangeTimer <= 0) {
+        const weatherOptions: Weather[] = ['Dry', 'Light Rain', 'Heavy Rain'];
+        const newWeather = weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+        if (newWeather !== this.state.weather) {
+            this.state.weather = newWeather;
+            events.push({ type: 'WEATHER_CHANGE', payload: { newWeather }});
+        }
+        this.weatherChangeTimer = 20 + Math.random() * 40;
+    }
+    
+    // Update track wetness
+    if (this.state.weather === 'Light Rain') {
+        this.trackWetness = Math.min(100, this.trackWetness + delta * 2); // gets wetter slowly
+    } else if (this.state.weather === 'Heavy Rain') {
+        this.trackWetness = Math.min(100, this.trackWetness + delta * 5); // gets wetter quickly
+    } else {
+        this.trackWetness = Math.max(0, this.trackWetness - delta * 1); // dries slowly
+    }
+    this.state.trackCondition = this.getTrackConditionFromWetness();
+
+
     // Update Safety Car timer
     if (this.state.safetyCarTimeLeft !== undefined) {
       this.state.safetyCarTimeLeft -= delta;
@@ -220,12 +256,15 @@ export class RaceSimulation {
       }
       
 
-      // Weather effect
-      switch (this.state.weather) {
-        case 'Light Rain':
-          car.speed *= car.tire === 'Intermediate' || car.tire === 'Wet' ? 0.95 : 0.85;
+      // Weather effect based on track condition
+      switch (this.state.trackCondition) {
+        case 'Damp':
+          car.speed *= car.tire === 'Intermediate' ? 0.98 : 0.9;
           break;
-        case 'Heavy Rain':
+        case 'Wet':
+          car.speed *= (car.tire === 'Intermediate' || car.tire === 'Wet') ? 0.95 : 0.85;
+          break;
+        case 'Very Wet':
           car.speed *= car.tire === 'Wet' ? 0.9 : 0.75;
           break;
       }
