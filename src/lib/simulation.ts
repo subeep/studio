@@ -1,6 +1,6 @@
 'use client';
 
-import { DRIVERS, RACE_TRACK, TOTAL_LAPS } from './constants';
+import { RACE_TRACK, TOTAL_LAPS } from './constants';
 import type { Car, RaceState, RaceEvent, Weather, Tire } from './types';
 import type { SimulationSettings } from '@/components/simulation-setup';
 
@@ -15,7 +15,7 @@ export class RaceSimulation {
   }
 
   private getInitialRaceState(settings: SimulationSettings): RaceState {
-    const cars: Car[] = DRIVERS.map((driver, index) => ({
+    const cars: Car[] = settings.drivers.map((driver, index) => ({
       driver,
       position: index + 1,
       lap: 1,

@@ -1,16 +1,18 @@
 'use client';
 
 import * as React from 'react';
-import { DRIVERS } from '@/lib/constants';
+import { DRIVERS as INITIAL_DRIVERS } from '@/lib/constants';
 import type { Tire, Weather, Driver } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sun, Cloud, CloudRain } from 'lucide-react';
+import { Sun, Cloud, CloudRain, GripVertical } from 'lucide-react';
 import { Icons } from './icons';
 import { ScrollArea } from './ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 export interface SimulationSettings {
+  drivers: Driver[];
   weather: Weather;
   tires: Record<string, Tire>;
 }
@@ -23,21 +25,23 @@ const TIRE_OPTIONS: Tire[] = ['Soft', 'Medium', 'Hard'];
 const WEATHER_OPTIONS: Weather[] = ['Dry', 'Light Rain', 'Heavy Rain'];
 
 export function SimulationSetup({ onStart }: SimulationSetupProps) {
+  const [drivers, setDrivers] = React.useState<Driver[]>(INITIAL_DRIVERS);
   const [weather, setWeather] = React.useState<Weather>('Dry');
   const [tires, setTires] = React.useState<Record<string, Tire>>(() => {
     const initialTires: Record<string, Tire> = {};
-    DRIVERS.forEach(driver => {
+    INITIAL_DRIVERS.forEach(driver => {
       initialTires[driver.id] = 'Medium'; // Default to medium tires
     });
     return initialTires;
   });
+  const [draggedDriver, setDraggedDriver] = React.useState<Driver | null>(null);
 
   const handleTireChange = (driverId: string, newTire: Tire) => {
     setTires(prev => ({ ...prev, [driverId]: newTire }));
   };
 
   const handleStart = () => {
-    onStart({ weather, tires });
+    onStart({ drivers, weather, tires });
   };
   
   const getWeatherIcon = (weather: Weather) => {
@@ -47,6 +51,26 @@ export function SimulationSetup({ onStart }: SimulationSetupProps) {
       case 'Heavy Rain': return <CloudRain className="h-5 w-5 text-blue-500" />;
     }
   }
+
+  const handleDragStart = (driver: Driver) => {
+    setDraggedDriver(driver);
+  };
+
+  const handleDragEnter = (targetDriver: Driver) => {
+    if (!draggedDriver || draggedDriver.id === targetDriver.id) return;
+
+    const newDrivers = [...drivers];
+    const draggedIndex = newDrivers.findIndex(d => d.id === draggedDriver.id);
+    const targetIndex = newDrivers.findIndex(d => d.id === targetDriver.id);
+
+    newDrivers.splice(draggedIndex, 1);
+    newDrivers.splice(targetIndex, 0, draggedDriver);
+    setDrivers(newDrivers);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedDriver(null);
+  };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
@@ -87,8 +111,19 @@ export function SimulationSetup({ onStart }: SimulationSetupProps) {
             <h3 className="font-semibold">Starting Grid & Tires</h3>
              <ScrollArea className="h-72 rounded-md border">
                 <div className="p-4">
-                    {DRIVERS.map((driver, index) => (
-                      <div key={driver.id} className="mb-4 grid grid-cols-[30px_1fr_150px] items-center gap-4">
+                    {drivers.map((driver, index) => (
+                      <div 
+                        key={driver.id} 
+                        className={cn(
+                          "mb-2 grid cursor-grab grid-cols-[30px_1fr_150px_30px] items-center gap-4 rounded-md p-2 transition-shadow",
+                          draggedDriver?.id === driver.id ? "bg-primary/20 shadow-lg" : "bg-transparent hover:bg-muted/50"
+                        )}
+                        draggable
+                        onDragStart={() => handleDragStart(driver)}
+                        onDragEnter={() => handleDragEnter(driver)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(e) => e.preventDefault()}
+                      >
                         <div className="font-bold text-lg text-muted-foreground">{index + 1}</div>
                         <div>
                           <p className="font-semibold">{driver.name} <span className="text-muted-foreground">{driver.tricode}</span></p>
@@ -98,7 +133,7 @@ export function SimulationSetup({ onStart }: SimulationSetupProps) {
                           value={tires[driver.id]}
                           onValueChange={(value: Tire) => handleTireChange(driver.id, value)}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="cursor-pointer">
                             <SelectValue placeholder="Select tire" />
                           </SelectTrigger>
                           <SelectContent>
@@ -107,6 +142,7 @@ export function SimulationSetup({ onStart }: SimulationSetupProps) {
                             ))}
                           </SelectContent>
                         </Select>
+                         <GripVertical className="h-5 w-5 text-muted-foreground" />
                       </div>
                     ))}
                 </div>

@@ -13,7 +13,6 @@ import { Flag } from 'lucide-react';
 import { useUser, useAuth, useFirestore } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { DRIVERS } from '@/lib/constants';
 import { SimulationSetup, type SimulationSettings } from '@/components/simulation-setup';
 
 export default function CircuitVisionPage() {
@@ -32,11 +31,11 @@ export default function CircuitVisionPage() {
   }, [user, isUserLoading, auth]);
 
   React.useEffect(() => {
-    if (user && isInitialized && raceState) {
+    if (user && isInitialized && raceState && settings) {
         const raceRef = doc(firestore, 'races', 'race1');
         setDoc(raceRef, {id: 'race1', weatherConditions: raceState.weather, timestamp: new Date().toISOString() }, { merge: true });
 
-        DRIVERS.forEach(driver => {
+        settings.drivers.forEach(driver => {
             const carRef = doc(raceRef, 'cars', driver.id);
             const carData = raceState.cars.find(c => c.driver.id === driver.id);
             if (carData) {
@@ -44,7 +43,7 @@ export default function CircuitVisionPage() {
             }
         });
     }
-  }, [user, isInitialized, firestore, raceState]);
+  }, [user, isInitialized, firestore, raceState, settings]);
 
   const handleDriverSelect = (car: Car) => {
     setSelectedCar(car);
@@ -76,7 +75,20 @@ export default function CircuitVisionPage() {
       
       // After 2 seconds, restore the original speed.
       setTimeout(async () => {
-        await setDoc(carRef, { speed: originalSpeed }, { merge: true });
+        const currentCarSnap = await getDoc(carRef);
+        if(currentCarSnap.exists()) {
+          const currentCarData = currentCarSnap.data() as Car;
+          let speedMultiplier = 1.0;
+          const oldTire = carData.tire;
+          if (oldTire === 'Hard' && newTire === 'Medium') speedMultiplier = 1.015;
+          if (oldTire === 'Hard' && newTire === 'Soft') speedMultiplier = 1.03;
+          if (oldTire === 'Medium' && newTire === 'Soft') speedMultiplier = 1.015;
+          if (oldTire === 'Soft' && newTire === 'Medium') speedMultiplier = 0.985;
+          if (oldTire === 'Soft' && newTire === 'Hard') speedMultiplier = 0.97;
+          if (oldTire === 'Medium' && newTire === 'Hard') speedMultiplier = 0.985;
+
+          await setDoc(carRef, { speed: originalSpeed * speedMultiplier }, { merge: true });
+        }
       }, 2000);
     }
   };
