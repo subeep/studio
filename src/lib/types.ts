@@ -71,5 +71,6 @@ export interface LogEntry {
   position: number;
   speed: number;
   tire: Tire;
+  fuel: number;
   message: string;
 }

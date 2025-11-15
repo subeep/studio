@@ -3,7 +3,7 @@
 import type { LogEntry } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { BookText, User, ChevronsRight, Thermometer, Wind } from 'lucide-react';
+import { BookText } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface DataLogProps {
@@ -38,6 +38,7 @@ export function DataLog({ log }: DataLogProps) {
                         <span>Lap: {entry.lap}</span>
                         <span>Spd: {entry.speed.toFixed(0)}</span>
                         <span>Tire: {entry.tire}</span>
+                        <span>Fuel: {entry.fuel.toFixed(0)}%</span>
                      </div>
                   </div>
                 </div>

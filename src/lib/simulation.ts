@@ -28,7 +28,7 @@ export class RaceSimulation {
       position: index + 1,
       lap: 1,
       progress: 0,
-      speed: 180 + Math.random() * 20 - 10, // Reduced variance
+      speed: 180 + Math.random() * 20 - 10,
       tire: settings.tires[driver.id] || 'Medium',
       tireWear: 0,
       isPitting: false,
@@ -130,10 +130,8 @@ export class RaceSimulation {
 
     let delta = (now - this.lastTick) / 1000; // time in seconds
 
-    // If the delta is very large (e.g., > 1 second), it means we've likely resumed from a pause.
-    // In this case, we'll treat it as a small, fixed delta to avoid a huge time jump.
     if (delta > 1) {
-      delta = 1 / 60; // Assume 60fps, so use a small delta.
+      delta = 1 / 60; 
     }
 
     this.lastTick = now;
@@ -211,12 +209,10 @@ export class RaceSimulation {
         if (time <= 0) {
           this.pitStopTimers.delete(car.driver.id);
           car.isPitting = false;
-          // Logic for choosing new tire can be more complex
           car.tire = this.state.weather === 'Dry' ? (Math.random() > 0.5 ? 'Hard' : 'Medium') : 'Wet';
           car.tireWear = 0;
           car.fuel = 100; // Refuel on pit stop
           events.push({ type: 'PIT_STOP_END', payload: { driverId: car.driver.id } });
-          this.logCallback({ timestamp: Date.now(), carName: car.driver.tricode, lap: car.lap, position: car.position, speed: car.speed, tire: car.tire, message: `Exits the pit lane on ${car.tire} tires.` });
         } else {
           this.pitStopTimers.set(car.driver.id, time);
         }
@@ -225,20 +221,18 @@ export class RaceSimulation {
       
       const isPitWindow = car.lap >= 18 && car.lap <= 22;
 
-      // Decide to pit. Pitting under safety car is a strategic choice.
-      const shouldPit = (this.state.activeFlag === 'SafetyCar' && Math.random() < 0.005) || // Low chance to strategically pit
+      const shouldPit = (this.state.activeFlag === 'SafetyCar' && Math.random() < 0.005) ||
                       (isPitWindow && Math.random() < 0.001) ||
                       (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
                       (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10) ||
-                      (car.fuel < 5); // Pit if fuel is low
+                      (car.fuel < 5);
 
       if (!car.isPitting && shouldPit) {
         car.isPitting = true;
         car.pitStops += 1;
         this.pitStopTimers.set(car.driver.id, 2 + Math.random()); // Pit stop duration
         events.push({ type: 'PIT_STOP_START', payload: { driverId: car.driver.id } });
-        this.logCallback({ timestamp: Date.now(), carName: car.driver.tricode, lap: car.lap, position: car.position, speed: car.speed, tire: car.tire, message: 'Boxes for a pit stop.' });
         return;
       }
       
@@ -246,10 +240,8 @@ export class RaceSimulation {
       if (override?.speed) {
         car.speed = override.speed;
       } else {
-        // Update speed based on various factors
         let baseSpeed = 300;
         baseSpeed *= (1 - car.tireWear / 200);
-        // Fuel effect: lighter car is faster. Max 3% speed boost at empty.
         baseSpeed *= (1 + (1 - car.fuel / 100) * 0.03); 
 
         car.speed = baseSpeed;
@@ -257,24 +249,19 @@ export class RaceSimulation {
 
       if (override?.tire) {
         car.tire = override.tire;
-        // Don't reset wear here, it's done in updateCarFromDb
       }
 
-      // Tire compound effect from user request
       let tireSpeedMultiplier = 1.0;
-      if (car.tire === 'Soft') tireSpeedMultiplier = 1.015; // 1.5% faster than medium
-      if (car.tire === 'Hard') tireSpeedMultiplier = 0.985; // 1.5% slower than medium
+      if (car.tire === 'Soft') tireSpeedMultiplier = 1.015;
+      if (car.tire === 'Hard') tireSpeedMultiplier = 0.985;
       
       car.speed *= tireSpeedMultiplier;
 
-      // DRS Effect
       const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
       if (car.drsStatus && inDrsZone) {
-        car.speed *= 1.05; // 5% speed boost with DRS
+        car.speed *= 1.05;
       }
       
-
-      // Weather effect based on track condition
       switch (this.state.trackCondition) {
         case 'Damp':
           car.speed *= car.tire === 'Intermediate' ? 0.98 : 0.9;
@@ -287,38 +274,31 @@ export class RaceSimulation {
           break;
       }
       
-      // Wind Effect
       let windEffect = 0;
       if (this.state.windDirection === 'Tailwind') {
-        windEffect = this.state.windSpeed * 0.2; // Tailwind provides a small boost
+        windEffect = this.state.windSpeed * 0.2;
       } else if (this.state.windDirection === 'Headwind') {
-        windEffect = -this.state.windSpeed * 0.3; // Headwind has a slightly stronger negative effect
+        windEffect = -this.state.windSpeed * 0.3;
       }
       car.speed += windEffect;
 
-
-      // Apply flag speed multiplier
       car.speed *= speedMultiplier;
 
-      // Enforce hard speed limit
       car.speed = Math.min(car.speed, 330);
 
-      // Update progress
       const distance = (car.speed * 1000 / 3600) * delta; 
       car.progress += (distance / this.state.track.length) * 100;
       car.totalDistance += distance;
       
-      // Update tire wear & fuel
       let wearRate = 0.2;
       if (car.tire === 'Soft') wearRate = 0.4;
       if (car.tire === 'Hard') wearRate = 0.1;
       car.tireWear += wearRate * delta;
       
-      const fuelConsumptionRate = 1.8 / TOTAL_LAPS; // Percentage of fuel per lap
+      const fuelConsumptionRate = 1.8 / TOTAL_LAPS;
       car.fuel -= (distance / this.state.track.length) * fuelConsumptionRate * 100;
       car.fuel = Math.max(0, car.fuel);
 
-      // Handle lap completion
       if (car.progress >= 100) {
         car.progress -= 100;
         car.lap += 1;
@@ -335,7 +315,6 @@ export class RaceSimulation {
     });
 
     if (isOvertakingAllowed) {
-        // Sort cars and handle overtakes
         const oldOrder = [...this.state.cars];
         this.state.cars.sort((a, b) => b.totalDistance - a.totalDistance);
 
@@ -347,19 +326,17 @@ export class RaceSimulation {
                 if(overtakenCar) {
                     events.push({ type: 'OVERTAKE', payload: { overtakingCarId: car.driver.id, overtakenCarId: overtakenCar.driver.id } });
                     car.highlight = true;
-                    this.logCallback({ timestamp: Date.now(), carName: car.driver.tricode, lap: car.lap, position: newPosition, speed: car.speed, tire: car.tire, message: `Overtakes ${overtakenCar.driver.tricode} for P${newPosition}` });
                 }
             } else {
                 car.highlight = false;
             }
             car.position = newPosition;
 
-            // DRS activation logic & Interval calculation
             car.drsStatus = false;
             if (index > 0) {
                 const carAhead = this.state.cars[index - 1];
                 const distanceToCarAhead = carAhead.totalDistance - car.totalDistance;
-                const timeToCarAhead = distanceToCarAhead / (carAhead.speed / 3.6); // time in seconds
+                const timeToCarAhead = distanceToCarAhead / (carAhead.speed / 3.6);
                 car.interval = timeToCarAhead;
 
                 const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
@@ -368,27 +345,24 @@ export class RaceSimulation {
                     car.drsStatus = true;
                 }
             } else {
-                car.interval = 0; // Leader has no interval
+                car.interval = 0;
             }
         });
     } else {
-        // When overtaking is not allowed, cars should still "bunch up" but not re-order
         this.state.cars.sort((a, b) => a.position - b.position).forEach((car, index) => {
-            car.highlight = false; // no highlights during these periods
-            car.drsStatus = false; // DRS is always off
+            car.highlight = false;
+            car.drsStatus = false;
 
             if (index > 0) {
                 const carAhead = this.state.cars[index -1];
                 const carAheadTotalDistance = carAhead.totalDistance;
                 const currentCarTotalDistance = car.totalDistance;
                 
-                const idealGap = 10; // meters
+                const idealGap = 10;
 
-                // If current car is too close or has passed, adjust its position
                 if (currentCarTotalDistance > carAheadTotalDistance - idealGap) {
                    const distanceToPullBack = currentCarTotalDistance - (carAheadTotalDistance - idealGap);
                    car.totalDistance -= distanceToPullBack;
-                   // Recalculate progress based on new totalDistance
                    const lapsCompleted = Math.floor(car.totalDistance / this.state.track.length);
                    car.lap = lapsCompleted + 1;
                    const distanceIntoLap = car.totalDistance % this.state.track.length;
@@ -398,14 +372,21 @@ export class RaceSimulation {
         })
     }
 
-    // Periodic logging
     this.logTimer -= delta;
     if (this.logTimer <= 0) {
-      const leader = this.state.cars[0];
-      if (leader) {
-        this.logCallback({ timestamp: Date.now(), carName: leader.driver.tricode, lap: leader.lap, position: 1, speed: leader.speed, tire: leader.tire, message: 'Current race leader update.' });
-      }
-      this.logTimer = 5; // Log every 5 seconds
+      this.state.cars.forEach(car => {
+          this.logCallback({
+              timestamp: Date.now(),
+              carName: car.driver.tricode,
+              lap: car.lap,
+              position: car.position,
+              speed: car.speed,
+              tire: car.tire,
+              fuel: car.fuel,
+              message: `P${car.position} | Lap ${car.lap} | Spd: ${car.speed.toFixed(0)} | Fuel: ${car.fuel.toFixed(0)}%`
+          });
+      });
+      this.logTimer = 1; // Log every 1 second
     }
 
 
