@@ -76,11 +76,19 @@ export class RaceSimulation {
   
   tick(): RaceEvent[] {
     const now = Date.now();
-    if(this.lastTick === null) {
+    if (this.lastTick === null) {
       this.lastTick = now;
       return [];
     }
-    const delta = (now - this.lastTick) / (1000); // time in seconds
+
+    let delta = (now - this.lastTick) / 1000; // time in seconds
+
+    // If the delta is very large (e.g., > 1 second), it means we've likely resumed from a pause.
+    // In this case, we'll treat it as a small, fixed delta to avoid a huge time jump.
+    if (delta > 1) {
+      delta = 1 / 60; // Assume 60fps, so use a small delta.
+    }
+
     this.lastTick = now;
 
     const events: RaceEvent[] = [];
@@ -111,9 +119,7 @@ export class RaceSimulation {
       const shouldPit = (isPitWindow && Math.random() < 0.001) ||
                       (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
-                      (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10) ||
-                      (this.state.weather.includes('Rain') && !['Intermediate', 'Wet'].includes(car.tire)) ||
-                      (!this.state.weather.includes('Rain') && ['Intermediate', 'Wet'].includes(car.tire));
+                      (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10);
 
       if (!car.isPitting && shouldPit) {
         car.isPitting = true;
