@@ -36,6 +36,7 @@ export class RaceSimulation {
       drsStatus: false,
       interval: 0,
       fuel: 100,
+      slipstreamBenefit: 0,
     }));
     
     this.trackWetness = settings.weather === 'Dry' ? 0 : settings.weather === 'Light Rain' ? 40 : 80;
@@ -188,7 +189,7 @@ export class RaceSimulation {
 
 
     // Update each car
-    this.state.cars.forEach(car => {
+    this.state.cars.forEach((car, index) => {
       // Handle pitting
       if (this.pitStopTimers.has(car.driver.id)) {
         let time = this.pitStopTimers.get(car.driver.id)! - delta;
@@ -223,54 +224,86 @@ export class RaceSimulation {
       }
       
       const override = this.manualOverrides.get(car.driver.id);
+      let baseSpeed = 290; // Base speed for all cars
+      
       if (override?.speed) {
         car.speed = override.speed;
       } else {
-        let baseSpeed = 300;
-        baseSpeed *= (1 - car.tireWear / 200);
-        baseSpeed *= (1 + (1 - car.fuel / 100) * 0.03); 
-
-        car.speed = baseSpeed;
+        // More subtle performance variation between cars
+        const driverPerformanceFactor = 1 + ((car.driver.id.charCodeAt(0) % 10) - 5) / 100; // -5% to +4%
+        baseSpeed *= driverPerformanceFactor;
       }
 
       if (override?.tire) {
         car.tire = override.tire;
       }
-
-      let tireSpeedMultiplier = 1.0;
-      if (car.tire === 'Soft') tireSpeedMultiplier = 1.015;
-      if (car.tire === 'Hard') tireSpeedMultiplier = 0.985;
       
-      car.speed *= tireSpeedMultiplier;
+      // Tire age effect
+      baseSpeed *= (1 - car.tireWear / 250); // Less harsh penalty
+
+      // Fuel load effect
+      baseSpeed *= (1 + (1 - car.fuel / 100) * 0.05); // Up to 5% speed increase as fuel burns
+
+      let tireCompoundMultiplier = 1.0;
+      if (car.tire === 'Soft') tireCompoundMultiplier = 1.02;
+      if (car.tire === 'Hard') tireCompoundMultiplier = 0.98;
+      
+      baseSpeed *= tireCompoundMultiplier;
+      
+      // Slipstream and DRS
+      let slipstreamBoost = 0;
+      if (index > 0 && isOvertakingAllowed) {
+          const carAhead = this.state.cars[index - 1];
+          const gapMeters = carAhead.totalDistance - car.totalDistance;
+          
+          if (gapMeters > 0 && gapMeters < 150) { // Only apply if within a reasonable distance
+              const maxSlip = 0.03;
+              const slipDecayM = 40;
+              const slipBenefitFactor = maxSlip * Math.exp(-gapMeters / slipDecayM);
+              slipstreamBoost += slipBenefitFactor;
+              car.slipstreamBenefit = slipBenefitFactor;
+          } else {
+              car.slipstreamBenefit = 0;
+          }
+      } else {
+          car.slipstreamBenefit = 0;
+      }
 
       const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
-      if (car.drsStatus && inDrsZone) {
-        car.speed *= 1.05;
-      }
+      const drsFactor = (car.drsStatus && inDrsZone) ? 0.05 : 0;
       
+      // Apply boosts
+      baseSpeed *= (1 + slipstreamBoost + drsFactor);
+      
+      // Track condition effect
       switch (this.state.trackCondition) {
         case 'Damp':
-          car.speed *= car.tire === 'Intermediate' ? 0.98 : 0.9;
+          baseSpeed *= car.tire === 'Intermediate' ? 0.98 : 0.9;
           break;
         case 'Wet':
-          car.speed *= (car.tire === 'Intermediate' || car.tire === 'Wet') ? 0.95 : 0.85;
+          baseSpeed *= (car.tire === 'Intermediate' || car.tire === 'Wet') ? 0.95 : 0.85;
           break;
         case 'Very Wet':
-          car.speed *= car.tire === 'Wet' ? 0.9 : 0.75;
+          baseSpeed *= car.tire === 'Wet' ? 0.9 : 0.75;
           break;
       }
       
+      // Wind effect
       let windEffect = 0;
       if (this.state.windDirection === 'Tailwind') {
         windEffect = this.state.windSpeed * 0.2;
       } else if (this.state.windDirection === 'Headwind') {
         windEffect = -this.state.windSpeed * 0.3;
       }
-      car.speed += windEffect;
+      baseSpeed += windEffect;
 
-      car.speed *= speedMultiplier;
+      // Global flag multiplier
+      baseSpeed *= speedMultiplier;
 
-      car.speed = Math.min(car.speed, 330);
+      // Final speed with some random jitter
+      car.speed = baseSpeed * (1 + (Math.random() - 0.5) * 0.01); // Very small random factor
+      car.speed = Math.max(50, Math.min(car.speed, 360));
+
 
       const distance = (car.speed * 1000 / 3600) * delta; 
       car.progress += (distance / this.state.track.length) * 100;
@@ -338,13 +371,14 @@ export class RaceSimulation {
         this.state.cars.sort((a, b) => a.position - b.position).forEach((car, index) => {
             car.highlight = false;
             car.drsStatus = false;
+            car.slipstreamBenefit = 0;
 
             if (index > 0) {
                 const carAhead = this.state.cars[index -1];
                 const carAheadTotalDistance = carAhead.totalDistance;
                 const currentCarTotalDistance = car.totalDistance;
                 
-                const idealGap = 10;
+                const idealGap = 15;
 
                 if (currentCarTotalDistance > carAheadTotalDistance - idealGap) {
                    const distanceToPullBack = currentCarTotalDistance - (carAheadTotalDistance - idealGap);

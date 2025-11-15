@@ -23,6 +23,7 @@ export interface Car {
   drsStatus: boolean;
   interval?: number;
   fuel: number; // 0 to 100
+  slipstreamBenefit: number; // 0 to 1
 }
 
 export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';

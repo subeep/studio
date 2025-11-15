@@ -7,7 +7,6 @@ import { User, BrainCircuit, Fuel } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
-import { Slider } from './ui/slider';
 import { predictOptimalPitStop, type PredictOptimalPitStopOutput } from '@/ai/flows/predict-optimal-pitstop';
 import { Skeleton } from './ui/skeleton';
 import { TOTAL_LAPS } from '@/lib/constants';
@@ -16,7 +15,6 @@ import { Progress } from './ui/progress';
 interface ProfileDashboardProps {
   car: Car | null;
   onTireChange: (carId: string, newTire: Tire) => void;
-  onSpeedChange: (carId: string, newSpeed: number) => void;
 }
 
 const TIRE_OPTIONS: Tire[] = ['Soft', 'Medium', 'Hard'];
@@ -86,15 +84,7 @@ function PitStopPrediction({ car }: { car: Car }) {
   )
 }
 
-export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDashboardProps) {
-  const [speed, setSpeed] = useState(car?.speed || 0);
-
-  useEffect(() => {
-    if (car) {
-      setSpeed(car.speed);
-    }
-  }, [car]);
-
+export function ProfileDashboard({ car, onTireChange }: ProfileDashboardProps) {
 
   if (!car) {
     return (
@@ -113,10 +103,6 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
       </Card>
     );
   }
-
-  const handleSpeedUpdate = () => {
-    onSpeedChange(car.driver.id, speed);
-  };
 
   return (
     <Card>
@@ -176,27 +162,6 @@ export function ProfileDashboard({ car, onTireChange, onSpeedChange }: ProfileDa
                 Changing tires will reset wear to 0% and incur a 2-second time penalty. Fuel is also refilled.
             </p>
             </div>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-4">
-            <h4 className="font-semibold">Manual Control</h4>
-            <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                    <Label htmlFor="speed-slider">Speed (km/h)</Label>
-                    <span className="font-mono text-sm">{speed.toFixed(0)}</span>
-                </div>
-                <Slider 
-                    id="speed-slider"
-                    min={0}
-                    max={360}
-                    step={5}
-                    value={[speed]}
-                    onValueChange={(value) => setSpeed(value[0])}
-                />
-            </div>
-            <Button onClick={handleSpeedUpdate} className="w-full">Update Speed</Button>
         </div>
       </CardContent>
     </Card>
