@@ -97,11 +97,6 @@ export class RaceSimulation {
           const override = this.manualOverrides.get(carId) || {};
           let needsUpdate = false;
 
-          if (carData.speed !== undefined && carData.speed !== currentCar.speed) {
-              override.speed = carData.speed;
-              needsUpdate = true;
-          }
-
           if (carData.tire !== undefined && carData.tire !== currentCar.tire) {
               override.tire = carData.tire;
               this.state.cars[carIndex].tireWear = 0; // Reset tire wear on change
