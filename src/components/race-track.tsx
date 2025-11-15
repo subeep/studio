@@ -49,6 +49,17 @@ export function RaceTrack({ cars, track }: RaceTrackProps) {
             strokeLinejoin="round"
           />
 
+          {/* Pit Lane */}
+          {track.pitLanePath && (
+             <path
+              d={track.pitLanePath}
+              stroke="hsl(var(--border))"
+              strokeWidth="4"
+              strokeDasharray="8 8"
+              fill="none"
+            />
+          )}
+
           {/* DRS Zones */}
           {track.drsZones.map((zone, index) => {
             if (!pathRef.current || pathLength === 0) return null;

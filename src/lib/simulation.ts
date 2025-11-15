@@ -85,8 +85,11 @@ export class RaceSimulation {
         return; // Skip movement if pitting
       }
       
+      const isPitWindow = car.lap >= 18 && car.lap <= 22;
+
       // Decide to pit
-      const shouldPit = (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
+      const shouldPit = (isPitWindow && Math.random() < 0.01) ||
+                      (car.tire === 'Soft' && car.tireWear > 50 + Math.random() * 10) ||
                       (car.tire === 'Medium' && car.tireWear > 70 + Math.random() * 10) ||
                       (car.tire === 'Hard' && car.tireWear > 85 + Math.random() * 10) ||
                       (this.state.weather.includes('Rain') && !['Intermediate', 'Wet'].includes(car.tire)) ||

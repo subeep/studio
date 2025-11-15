@@ -26,6 +26,7 @@ export type Weather = 'Dry' | 'Light Rain' | 'Heavy Rain';
 export interface Track {
   name: string;
   path: string;
+  pitLanePath: string;
   length: number; // in meters
   drsZones: { start: number; end: number }[];
 }
