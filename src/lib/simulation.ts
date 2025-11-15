@@ -36,7 +36,6 @@ export class RaceSimulation {
       drsStatus: false,
       interval: 0,
       fuel: 100,
-      slipstreamBenefit: 0,
     }));
     
     this.trackWetness = settings.weather === 'Dry' ? 0 : settings.weather === 'Light Rain' ? 40 : 80;
@@ -254,19 +253,11 @@ export class RaceSimulation {
       let slipstreamBoost = 0;
       if (index > 0 && isOvertakingAllowed) {
           const carAhead = this.state.cars[index - 1];
-          const gapMeters = carAhead.totalDistance - car.totalDistance;
+          const distanceToCarAhead = carAhead.lap + carAhead.progress / 100 - (car.lap + car.progress / 100);
           
-          if (gapMeters > 0 && gapMeters < 150) { // Only apply if within a reasonable distance
-              const maxSlip = 0.03;
-              const slipDecayM = 40;
-              const slipBenefitFactor = maxSlip * Math.exp(-gapMeters / slipDecayM);
-              slipstreamBoost += slipBenefitFactor;
-              car.slipstreamBenefit = slipBenefitFactor;
-          } else {
-              car.slipstreamBenefit = 0;
+          if (distanceToCarAhead > 0 && distanceToCarAhead < 0.01) { // A crude distance check based on progress
+              slipstreamBoost = 0.02;
           }
-      } else {
-          car.slipstreamBenefit = 0;
       }
 
       const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
@@ -335,7 +326,7 @@ export class RaceSimulation {
 
     if (isOvertakingAllowed) {
         const oldOrder = [...this.state.cars];
-        this.state.cars.sort((a, b) => b.totalDistance - a.totalDistance);
+        this.state.cars.sort((a, b) => b.lap + b.progress / 100 - (a.lap + a.progress / 100));
 
         this.state.cars.forEach((car, index) => {
             const newPosition = index + 1;
@@ -354,8 +345,8 @@ export class RaceSimulation {
             car.drsStatus = false;
             if (index > 0) {
                 const carAhead = this.state.cars[index - 1];
-                const distanceToCarAhead = carAhead.totalDistance - car.totalDistance;
-                const timeToCarAhead = distanceToCarAhead / (carAhead.speed / 3.6);
+                const distanceToCarAhead = (carAhead.lap + carAhead.progress / 100) - (car.lap + car.progress / 100); // This is in laps
+                const timeToCarAhead = distanceToCarAhead * 90; // Rough conversion: 1 lap ~ 90 seconds
                 car.interval = timeToCarAhead;
 
                 const inDrsZone = this.state.track.drsZones.some(zone => car.progress / 100 >= zone.start && car.progress / 100 <= zone.end);
@@ -371,22 +362,21 @@ export class RaceSimulation {
         this.state.cars.sort((a, b) => a.position - b.position).forEach((car, index) => {
             car.highlight = false;
             car.drsStatus = false;
-            car.slipstreamBenefit = 0;
 
             if (index > 0) {
                 const carAhead = this.state.cars[index -1];
-                const carAheadTotalDistance = carAhead.totalDistance;
-                const currentCarTotalDistance = car.totalDistance;
+                const carAheadTotalProgress = carAhead.lap + carAhead.progress / 100;
+                const currentCarTotalProgress = car.lap + car.progress / 100;
                 
-                const idealGap = 15;
+                const idealGapLaps = 0.005; // Maintain a small gap in terms of lap progress
 
-                if (currentCarTotalDistance > carAheadTotalDistance - idealGap) {
-                   const distanceToPullBack = currentCarTotalDistance - (carAheadTotalDistance - idealGap);
-                   car.totalDistance -= distanceToPullBack;
-                   const lapsCompleted = Math.floor(car.totalDistance / this.state.track.length);
-                   car.lap = lapsCompleted + 1;
-                   const distanceIntoLap = car.totalDistance % this.state.track.length;
-                   car.progress = (distanceIntoLap / this.state.track.length) * 100;
+                if (currentCarTotalProgress > carAheadTotalProgress - idealGapLaps) {
+                   const progressToPullBack = currentCarTotalProgress - (carAheadTotalProgress - idealGapLaps);
+                   car.progress -= progressToPullBack * 100;
+                   if (car.progress < 0) {
+                       car.lap -= 1;
+                       car.progress += 100;
+                   }
                 }
             }
         })

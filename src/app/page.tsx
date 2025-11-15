@@ -20,7 +20,6 @@ import { FlagNotification } from '@/components/flag-notification';
 import { TrackCondition } from '@/components/track-condition';
 import { WindIndicator } from '@/components/wind-indicator';
 import { DataLog } from '@/components/data-log';
-import { DrsPrediction } from '@/components/drs-prediction';
 
 export default function CircuitVisionPage() {
   const [settings, setSettings] = React.useState<SimulationSettings | null>(null);
@@ -111,11 +110,6 @@ export default function CircuitVisionPage() {
       }
   }
 
-  const carAhead = selectedCar && selectedCar.position > 1 
-    ? raceState.cars.find(c => c.position === selectedCar.position - 1) || null
-    : null;
-
-
   return (
     <>
       <div className="min-h-screen bg-background font-body text-foreground">
@@ -167,7 +161,6 @@ export default function CircuitVisionPage() {
             />
             <TrackCondition condition={raceState.trackCondition} />
             <WindIndicator speed={raceState.windSpeed} direction={raceState.windDirection} />
-            {selectedCar && <DrsPrediction car={selectedCar} carAhead={carAhead} />}
             <DataLog log={log} />
           </div>
         </main>
